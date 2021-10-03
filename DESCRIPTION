@@ -1,0 +1,14 @@
+Package: fastBayesReg
+Type: Package
+Title: Fast Bayesian Regression
+Version: 0.1.0
+Author: Jian Kang
+Maintainer: Jian Kang <jiankang@umich.edu>
+Description: This package implements posterior computaiton algorithms for a wide range of Bayesian regression models
+License: GPL
+Encoding: UTF-8
+LazyData: true
+Imports: Rcpp (>= 1.0.7)
+LinkingTo: Rcpp, RcppArmadillo
+Depends: Rcpp (>= 1.0.7), RcppArmadillo
+RoxygenNote: 7.1.2
