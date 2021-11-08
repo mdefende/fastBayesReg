@@ -9,19 +9,160 @@ NULL
 #'@param n sample size
 #'@param p number of candidate predictors
 #'@param q number of nonzero predictors
+#'@param R2 R-squared indicating the proportion of variation explained by the predictors
 #'@param beta_size effect size of beta coefficients
+#'@param X_cor correlation between covariates
 #'@return a list objects consisting of the following components
 #'\describe{
-#'\item{delta}{vector of n outcome variables}
+#'\item{y}{vector of n outcome variables}
 #'\item{X}{n x p matrix of candidate predictors}
 #'\item{betacoef}{vector of p regression coeficients}
 #'\item{R2}{R-squared indicating the proportion of variation explained by the predictors}
+#'\item{sigma2}{noise variance}
+#'\item{X_cor}{correlation between covariates}
 #'}
 #'@author Jian Kang <jiankang@umich.edu>
 #'@examples
-#'dat <- sim_linear_reg(100,100,0.5,c(1,-1,1))
+#'dat<-sim_linear_reg(n=25,p=2000,X_cor=0.9,q=6)
+#'summary(with(dat,lm(y~X)))
 #'@export
-sim_linear_reg <- function(n, p, R2, beta_nonzero) {
-    .Call(`_fastBayesReg_sim_linear_reg`, n, p, R2, beta_nonzero)
+sim_linear_reg <- function(n = 100L, p = 20L, q = 5L, R2 = 0.95, X_cor = 0.5, beta_size = 1) {
+    .Call(`_fastBayesReg_sim_linear_reg`, n, p, q, R2, X_cor, beta_size)
+}
+
+#'@title Fast Bayesian linear regression with normal priors
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_normal_lm(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_normal_lm(y,X))
+#'tab <- data.frame(MSE=c(mean((dat1$betacoef-res1$post_mean$betacoef)^2),
+#'mean((dat2$betacoef-res2$post_mean$betacoef)^2)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_normal_tab <- tab
+#'print(fast_normal_tab)
+#'@export
+fast_normal_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 10) {
+    .Call(`_fastBayesReg_fast_normal_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau)
+}
+
+#'@title Simulate left standard truncated normal distribution
+#'@param n sample size
+#'@param lower the lower bound
+#'@return a vector of random numbers from a left standard truncated
+#'normal distribution
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'r0 <- rand_left_trucnorm0(1000, lower=2)
+#'hist(r0)
+#'@export
+rand_left_trucnorm0 <- function(n, lower, ratio = 1.0) {
+    .Call(`_fastBayesReg_rand_left_trucnorm0`, n, lower, ratio)
+}
+
+#'@title Simulate left truncated normal distribution
+#'@param n sample size
+#'@param mu the location parameter
+#'@param sigma the scale parameter
+#'@param lower the lower bound
+#'@return a vector of random numbers from a left truncated
+#'normal distribution
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'r <- rand_left_trucnorm(1000, mu=100, sigma=0.1, lower=200)
+#'hist(r)
+#'@export
+rand_left_trucnorm <- function(n, mu, sigma, lower, ratio = 1.0) {
+    .Call(`_fastBayesReg_rand_left_trucnorm`, n, mu, sigma, lower, ratio)
+}
+
+#'@title Simulate right truncated normal distribution
+#'@param n sample size
+#'@param mu the location parameter
+#'@param sigma the scale parameter
+#'@param upper the upper bound
+#'@return a vector of random numbers from a right truncated
+#'normal distribution
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'r <- rand_right_trucnorm(1000, mu=100, sigma=0.1, upper=90)
+#'hist(r)
+#'@export
+rand_right_trucnorm <- function(n, mu, sigma, upper, ratio = 1.0) {
+    .Call(`_fastBayesReg_rand_right_trucnorm`, n, mu, sigma, upper, ratio)
+}
+
+#'@title Fast Bayesian linear regression with horseshoe priors
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the global shrinkage parameter
+#'@param A_lambda scale parameter in the half Cauchy prior of the local shrinkage parameter
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{lambda}{a vector of posterior mean of p local shrinkage parameters}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{b_lambda}{posterior mean of the rate parameter in the prior for local shrinkage parameters}
+#'\item{tau2}{posterior mean of the global parameter}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{betacoef}{a matrix of MCMC samples of p regression coeficients}
+#'\item{lambda}{a matrix of MCMC samples of p local shrinkage parameters}
+#'\item{sigma2_eps}{a vector of MCMC samples of the noise variance}
+#'\item{b_lambda}{a vector of MCMC samples of the rate parameter in the prior for local shrinkage parameters}
+#'\item{tau2}{a vector of MCMC samples of the global shrinkage parameter}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_horseshoe_lm(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_horseshoe_lm(y,X))
+#'tab <- data.frame(MSE=c(mean((dat1$betacoef-res1$post_mean$betacoef)^2),
+#'mean((dat2$betacoef-res2$post_mean$betacoef)^2)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_horseshoe_tab <- tab
+#'print(fast_horseshoe_tab)
+#'@export
+fast_horseshoe_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.0, b_sigma = 0.0, A_tau = 1, A_lambda = 1) {
+    .Call(`_fastBayesReg_fast_horseshoe_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda)
 }
 

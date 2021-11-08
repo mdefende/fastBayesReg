@@ -1,7 +1,8 @@
 # Fast Bayesian Regression Models
 #
 
-#'Simulate data from the logistic regression model
+
+#'@title Simulate data from the logistic regression model
 #'@param n sample size
 #'@param p number of candidate predictors
 #'@param q number of nonzero predictors
@@ -29,4 +30,24 @@ sim_logit_reg <- function(n=100, p=10, q = 5, beta_size=1){
 	return(list(delta=delta,X=X,betacoef=betacoef, beta0 = beta0,prob=prob,R2 = R2))
 }
 
+#'@export
+#'@importFrom glmnet glmnet
+wrap_glmnet <- function(y,X,alpha=1,intercept=FALSE,...){
+	elapsed <- proc.time()[3]
+	cv_res <- glmnet::cv.glmnet(X,y,alpha=alpha,...)
+	res <- glmnet::glmnet(X,y,alpha=alpha,lambda=cv_res$lambda.1se,...)
+	elapsed <- proc.time()[3] - elapsed
+	return(list(betacoef = as.numeric(res$beta),elapsed=elapsed))
+}
 
+#'@export
+#'@importFrom horseshoe horseshoe
+wrap_horseshoe <- function(y,X,method.tau="halfCauchy",
+													 burn=500,nmc=500,thin=1,method.sigma="Jeffreys",...){
+	elapsed <- proc.time()[3]
+	hsres <- horseshoe::horseshoe(y, X, method.tau = method.tau,
+						 method.sigma = method.sigma,
+						burn = burn, nmc = nmc, thin = thin,...)
+	elapsed <- proc.time()[3] - elapsed
+	return(list(betacoef = hsres$BetaHat,elapsed=elapsed))
+}

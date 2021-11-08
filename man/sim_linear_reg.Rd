@@ -4,7 +4,14 @@
 \alias{sim_linear_reg}
 \title{Simulate data from the logistic regression model}
 \usage{
-sim_linear_reg(n, p, R2, beta_nonzero)
+sim_linear_reg(
+  n = 100L,
+  p = 20L,
+  q = 5L,
+  R2 = 0.95,
+  X_cor = 0.5,
+  beta_size = 1
+)
 }
 \arguments{
 \item{n}{sample size}
@@ -13,22 +20,29 @@ sim_linear_reg(n, p, R2, beta_nonzero)
 
 \item{q}{number of nonzero predictors}
 
+\item{R2}{R-squared indicating the proportion of variation explained by the predictors}
+
+\item{X_cor}{correlation between covariates}
+
 \item{beta_size}{effect size of beta coefficients}
 }
 \value{
 a list objects consisting of the following components
 \describe{
-\item{delta}{vector of n outcome variables}
+\item{y}{vector of n outcome variables}
 \item{X}{n x p matrix of candidate predictors}
 \item{betacoef}{vector of p regression coeficients}
 \item{R2}{R-squared indicating the proportion of variation explained by the predictors}
+\item{sigma2}{noise variance}
+\item{X_cor}{correlation between covariates}
 }
 }
 \description{
 Simulate data from the logistic regression model
 }
 \examples{
-dat <- sim_linear_reg(100,100,0.5,c(1,-1,1))
+dat<-sim_linear_reg(n=25,p=2000,X_cor=0.9,q=6)
+summary(with(dat,lm(y~X)))
 }
 \author{
 Jian Kang <jiankang@umich.edu>
