@@ -18,7 +18,7 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
    if ["$MKLROOT" == ""]; then
       echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
    else
-      echo "PKG_LIBS +=  -L$MKLROOT/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl" > ./src/Makevars
+      echo "PKG_LIBS += -Wl,--start-group $MKLROOT/lib/intel64/libmkl_intel_ilp64.a ${MKLROOT}/lib/intel64/libmkl_gnu_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lgomp -lpthread -lm -ldl" > ./src/Makevars
    fi
 
 fi
