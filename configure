@@ -9,7 +9,6 @@ if [ ! -e "./src/Makevars" ]; then
 	touch ./src/Makevars
 fi
 
-
 if [ "$(uname)" == "Darwin" ]; then
         echo "PKG_LIBS +=  -L/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/ -lBLAS -lLAPACK
 
