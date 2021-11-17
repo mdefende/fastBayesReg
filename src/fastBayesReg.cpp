@@ -584,3 +584,251 @@ Rcpp::List fast_horseshoe_lm(arma::vec& y, arma::mat& X,
                            Named("elapsed") = elapsed);
 }
 
+
+void scalar_img_one_step_update(arma::vec& theta, arma::uvec& delta, arma::vec& lambda,
+                              double& sigma2_eps, double& tau2,
+                              double& b_tau, arma::vec& b_lambda,  arma::vec& betacoef,
+                              arma::vec& y, arma::mat& X, arma::mat& Z, arma::mat& Phi, arma::vec& eps,
+                              double& A2, double& A2_lambda,
+                              double a_sigma, double b_sigma,
+                              int p, int n, int L){
+
+
+	//update delta
+	for(int j=0;j<p;j++){
+		//update mu_j
+		arma::vec xphi_j = X.col(j)*betacoef(j);
+		arma::vec eps_j = eps;
+		if(delta(j)==1L){
+			eps_j -= xphi_j;
+		}
+		arma::vec eps_j_1 = eps_j - xphi_j;
+		double log_prob_1 = -0.5*arma::accu(eps_j_1%eps_j_1)/sigma2_eps;
+		double log_prob_0 = -0.5*arma::accu(eps_j%eps_j)/sigma2_eps;
+		double prob = 0.0;
+		if(log_prob_1>log_prob_0){
+			prob = 1.0/(1.0+exp(log_prob_0-log_prob_1));
+		} else{
+			prob = exp(log_prob_1-log_prob_0);
+			prob = prob/(1+prob);
+		}
+		if(arma::randu<double>() < prob){
+			delta(j) = 1L;
+			eps = eps_j - xphi_j;
+		} else{
+			delta(j) = 0L;
+			eps = eps_j;
+		}
+	}
+	//update Z
+	arma::uvec active_idx = arma::find(delta==1L);
+	Z = X.cols(active_idx)*Phi.rows(active_idx);
+
+	//update theta
+	arma::vec lambda2 = lambda%lambda;
+	double sigma_eps = sqrt(sigma2_eps);
+	double tau = sqrt(tau2);
+	double inv_tau2 = 1.0/tau2;
+	arma::vec alpha_1 = arma::randn<arma::vec>(p)%lambda;
+	alpha_1 *= sigma_eps*tau;
+	arma::vec alpha_2 = arma::randn<arma::vec>(n);
+	alpha_2 *= sigma_eps;
+	arma::mat LambdaZt = Z.t();
+	for(int i=0;i<n;i++){
+		LambdaZt.col(i) %= lambda;
+	}
+	arma::mat ZZt = arma::eye(n,n);
+	ZZt += tau2*LambdaZt.t()*LambdaZt;
+	arma::vec theta_s = arma::solve(ZZt, y - Z*alpha_1 - alpha_2,arma::solve_opts::fast);
+	theta = alpha_1 + tau2*lambda2%(Z.t()*theta_s);
+	//update betacoef
+	betacoef = Phi*theta;
+	//update eps
+	eps = y - Z*theta;
+
+
+	//update lambda
+	arma::vec theta2 = theta%theta;
+	arma::vec inv_lambda2 = arma::randg<arma::vec>(p,distr_param(1.0,1.0));
+	inv_lambda2 /= b_lambda + 0.5*theta2/tau2/sigma2_eps;
+	b_lambda = randg<arma::vec>(p,distr_param(1.0, 1.0));
+	b_lambda /= 1.0/A2_lambda+inv_lambda2;
+	lambda = sqrt(1.0/inv_lambda2);
+
+	//update tau2, sigma2_eps, b_tau and b_lambda
+	double sum_eps2 = arma::accu(eps%eps);
+	double sum_theta2_inv_lambda2 = arma::accu(theta2%inv_lambda2);
+	inv_tau2 = randg<double>(distr_param((1.0+L)/2.0,1.0/(b_tau+0.5*sum_theta2_inv_lambda2/sigma2_eps)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2)));
+	tau2 = 1.0/inv_tau2;
+	double inv_sigma2_eps = arma::randg<double>(distr_param(a_sigma+(L+n)/2, 1.0/(b_sigma+0.5*sum_theta2_inv_lambda2*inv_tau2+0.5*sum_eps2)));
+	sigma2_eps = 1.0/inv_sigma2_eps;
+}
+
+/*
+//'@title Fast Bayesian Scalar-on-Image linear regression with Gaussian process priors
+//'@param y vector of n outcome variables
+//'@param X n x p matrix of candidate predictors
+//'@param Phi p x L matrix of basis function
+//'@param mcmc_sample number of MCMC iterations saved
+//'@param burnin number of iterations before start to save
+//'@param thinning number of iterations to skip between two saved iterations
+//'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+//'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+//'@param A_tau scale parameter in the half Cauchy prior of the global shrinkage parameter
+//'@param A_lambda scale parameter in the half Cauchy prior of the local shrinkage parameter
+//'@return a list object consisting of two components
+//'\describe{
+//'\item{post_mean}{a list object of four components for posterior mean statistics}
+//'\describe{
+//'\item{mu}{a vector of posterior predictive mean of the n training sample}
+//'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+//'\item{lambda}{a vector of posterior mean of p local shrinkage parameters}
+//'\item{sigma2_eps}{posterior mean of the noise variance}
+//'\item{tau2}{posterior mean of the global parameter}
+//'}
+//'\item{mcmc}{a list object of three components for MCMC samples}
+//'\describe{
+//'\item{betacoef}{a matrix of MCMC samples of p regression coeficients}
+//'\item{lambda}{a matrix of MCMC samples of p local shrinkage parameters}
+//'\item{sigma2_eps}{a vector of MCMC samples of the noise variance}
+//'\item{tau2}{a vector of MCMC samples of the global shrinkage parameter}
+//'}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'set.seed(2022)
+//'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+//'res1 <- with(dat1,fast_horseshoe_lm(y,X))
+//'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+//'res2 <- with(dat2,fast_horseshoe_lm(y,X))
+//'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+//'time=c(res1$elapsed,res2$elapsed))
+//'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+//'fast_horseshoe_tab <- tab
+//'print(fast_horseshoe_tab)
+//'@export
+// [[Rcpp::export]]
+Rcpp::List fast_scalar_img_lm(arma::vec& y_, arma::mat& X_, arma::mat>& Phi,
+                             int mcmc_sample = 500,
+                             int burnin = 500, int thinning = 1,
+                             double a_sigma = 0.0, double b_sigma = 0.0,
+                             double A_tau = 1, double A_lambda = 1){
+
+	arma::wall_clock timer;
+	timer.tic();
+
+	arma::vec y;
+	arma::mat X;
+
+	if(p<n){
+		arma::vec d;
+		arma::mat U;
+		arma::mat V;
+		arma::svd_econ(U,d,V,X_);
+		y = U.t()*y_;
+		X = U.t()*X_;
+	} else{
+		y = y_;
+		X = X_;
+	}
+
+	int p = X.n_cols;
+	int n = X.n_rows;
+	int L = Phi.n_cols;
+
+	double sigma2_eps = 1;
+	if(a_sigma!=0.0){
+		sigma2_eps = b_sigma/a_sigma;
+	}
+	double A2 = A_tau*A_tau;
+	double A2_lambda = A_lambda*A_lambda;
+	double b_tau = 1;
+
+	double tau2 = 1;
+	arma::vec d2 = d%d;
+
+
+	arma::vec theta;
+	arma::uvec delta;
+	arma::vec betacoef;
+	arma::vec lambda;
+	arma::vec b_lambda;
+	arma::vec eps;
+	arma::mat Z = X*Phi;
+
+	theta.zeros(L);
+	lambda.ones(L);
+	b_lambda.ones(L);
+	delta.ones(p);
+	betacoef.zeros(p);
+	eps.zeros(n);
+
+
+	arma::mat theta_list;
+	arma::umat delta_list;
+	arma::mat betacoef_list;
+	arma::mat lambda_list;
+	arma::vec sigma2_eps_list;
+	arma::vec tau2_list;
+
+
+	delta_list.zeros(p,mcmc_sample);
+	betacoef_list.zeros(p,mcmc_sample);
+	theta_list.zeros(L,mcmc_sample);
+	lambda_list.zeros(L,mcmc_sample);
+	sigma2_eps_list.zeros(mcmc_sample);
+	tau2_list.zeros(mcmc_sample);
+
+
+		arma::mat XtX_inv = V*diagmat(1.0/d2)*V.t();
+		arma::vec Xty = X.t()*y;
+		for(int iter=0;iter<burnin;iter++){
+			scalar_img_one_step_update(theta, delta, lambda,
+                              sigma2_eps, tau2,
+                              b_tau,  b_lambda,  betacoef,
+                              y,  X,  Z,  Phi, eps, A2,  A2_lambda,
+                              a_sigma, b_sigma, p, n, L);
+		}
+		for(int iter=0;iter<mcmc_sample;iter++){
+			for(int j=0;j<thinning;j++){
+				scalar_img_one_step_update(theta, delta, lambda,
+                               sigma2_eps, tau2,
+                                b_tau,  b_lambda,  betacoef,
+                                y,  X,  Z,  Phi, eps, A2,  A2_lambda,
+                                a_sigma, b_sigma, p, n, L);
+			}
+			theta_list.col(iter) = theta;
+			delta_list.col(iter) = delta;
+			betacoef_list.col(iter) = betacoef;
+			lambda_list.col(iter) = lambda;
+			sigma2_eps_list(iter) = sigma2_eps;
+			tau2_list(iter) = tau2;
+		}
+
+
+	theta = arma::mean(theta_list,1);
+	arma::vec delta_prob = arma::mean(delta_list*1.0,1);
+	betacoef = arma::mean(betacoef_list,1);
+	lambda = arma::mean(lambda_list,1);
+	sigma2_eps = arma::mean(sigma2_eps_list);
+	tau2 = arma::mean(tau2_list);
+
+	Rcpp::List post_mean = Rcpp::List::create(Named("mu") = X_*betacoef,
+                                           Named("betacoef") = betacoef,
+                                           Named("theta") = theta,
+                                           Named("delta_prob") = delta_prob,
+                                           Named("lambda") = lambda,
+                                           Named("sigma2_eps") = sigma2_eps,
+                                           Named("tau2") = tau2);
+	Rcpp::List mcmc = Rcpp::List::create(Named("betacoef") = betacoef_list,
+                                      Named("lambda") = lambda_list,
+                                      Named("sigma2_eps") = sigma2_eps_list,
+                                      Named("tau2") = tau2_list);
+
+	double elapsed = timer.toc();
+	return Rcpp::List::create(Named("post_mean") = post_mean,
+                           Named("mcmc") = mcmc,
+                           Named("elapsed") = elapsed);
+}*/

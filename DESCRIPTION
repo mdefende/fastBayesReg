@@ -8,7 +8,7 @@ Description: This package implements posterior computaiton algorithms for a wide
 License: GPL
 Encoding: UTF-8
 LazyData: true
-Imports: Rcpp (>= 1.0.7), glmnet
+Imports: Rcpp (>= 1.0.7), glmnet, horseshoe
 LinkingTo: Rcpp, RcppArmadillo
-Depends: Rcpp (>= 1.0.7), RcppArmadillo
+Depends: Rcpp (>= 1.0.7), RcppArmadillo, glmnet, horseshoe
 RoxygenNote: 7.1.2
