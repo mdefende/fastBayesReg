@@ -3,7 +3,6 @@ if [ -e "./src/Makevars" ]; then
   rm -f ./src/Makevars
 fi
 
-
 #make the Makevars file
 if [ ! -e "./src/Makevars" ]; then
 	touch ./src/Makevars
