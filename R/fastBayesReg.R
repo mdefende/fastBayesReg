@@ -1,7 +1,6 @@
 # Fast Bayesian Regression Models
 #
 
-
 #'@title Simulate data from the logistic regression model
 #'@param n sample size
 #'@param p number of candidate predictors
@@ -40,6 +39,27 @@ wrap_glmnet <- function(y,X,alpha=1,intercept=FALSE,...){
 	return(list(betacoef = as.numeric(res$beta),elapsed=elapsed))
 }
 
+
+#'Quick call the horseshoe function in horseshoe package
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param method.tau method for handling $\tau$. Select "truncatedCauchy" for full Bayes with the Cauchy prior truncated to [1/p, 1], "halfCauchy" for full Bayes with the half-Cauchy prior, or "fixed" to use a fixed value (an empirical Bayes estimate, for example).
+#'@param burn number of iterations before start to save
+#'@param nmc number of MCMC iterations saved
+#'@param thin number of iterations to skip between two saved iterations
+#'@param method.sigma method for handling $\sigma$. Select "Jeffreys" for full Bayes with Jeffrey's prior on the error variance $\sigma^2$, or "fixed" to use a fixed value (an empirical Bayes estimate, for example).
+#'@param ... other parameters (see horseshoe function in horseshoe package)
+#'@return a list of object consisting of two components
+#'\describe{
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{elapsed}{running time}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res <- with(dat,wrap_horseshoe(y,X))
+#'print(comp_sparse_SSE(dat$betacoef,res$betacoef))
+#'print(res$elapsed)
 #'@export
 #'@importFrom horseshoe horseshoe
 wrap_horseshoe <- function(y,X,method.tau="halfCauchy",
