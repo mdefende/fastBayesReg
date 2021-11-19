@@ -584,6 +584,53 @@ Rcpp::List fast_horseshoe_lm(arma::vec& y, arma::mat& X,
                            Named("elapsed") = elapsed);
 }
 
+//'@title Prediction with fast Bayesian linear regression fitting
+//'@param model_fit  output list object of fast Bayesian linear regression fitting (see value of \link{fast_horseshoe_lm} as an example)
+//'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
+//'@param alpha posterior predictive credible level \eqn{\alpha \in (0,1)}. The default value is \eqn{0.95}.
+//'@return a list object consisting of three components
+//'\describe{
+//'\item{mean}{a vector of \eqn{n} posterior predictive mean values}
+//'\item{ucl}{a vector of \eqn{n}  posterior \eqn{\alpha} level upper credible limits}
+//'\item{lcl}{a vector of \eqn{n}  posterior \eqn{\alpha} level lower credible limits}
+//'\item{median}{a vector of \eqn{n}  posterior predictive median values}
+//'\item{sd}{a vector of \eqn{n}  posterior predictive standard deviation values}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'dat <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+//'train_idx = 1:round(length(dat$y)/2)
+//'test_idx = setdiff(1:length(dat$y),train_idx)
+//'res <- fast_horseshoe_lm(dat$y[train_idx],dat$X[train_idx,])
+//'pred_res <- predict_fast_lm(res,dat$X[test_idx,])
+//'plot(dat$y[test_idx,],pred_res$mean,
+//'type="p",pch=19,cex=0.5,col="blue",asp=1,xlab="Observations",
+//'ylab = "Predictions")
+//'abline(0,1)
+//'@export
+// [[Rcpp::export]]
+Rcpp::List predict_fast_lm(Rcpp::List& model_fit, arma::mat& X_test, double alpha = 0.95){
+
+	Rcpp::List mcmc = model_fit["mcmc"];
+	arma::mat betacoef = mcmc["betacoef"];
+	arma::mat pred_mu = X_test*betacoef;
+	double alpha_1 = (1-alpha)*0.5;
+	arma::vec pvec = {1.0 - alpha_1,alpha_1};
+	arma::vec pred_mean = arma::mean(pred_mu,1);
+	arma::mat pred_cls = arma::quantile(pred_mu,pvec,1);
+	arma::vec pred_median = arma::median(pred_mu,1);
+	arma::vec pred_sd = arma::stddev(pred_mu,0,1);
+
+
+	Rcpp::List pred = Rcpp::List::create(Named("mean") = pred_mean,
+                                      Named("ucl") = pred_cls.col(0),
+                                      Named("lcl") = pred_cls.col(1),
+                                      Named("median") = pred_median,
+                                      Named("sd") = pred_sd);
+
+	return pred;
+}
+
 
 void scalar_img_one_step_update(arma::vec& theta, arma::uvec& delta, arma::vec& lambda,
                               double& sigma2_eps, double& tau2,

@@ -107,6 +107,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// predict_fast_lm
+Rcpp::List predict_fast_lm(Rcpp::List& model_fit, arma::mat& X_test, double alpha);
+RcppExport SEXP _fastBayesReg_predict_fast_lm(SEXP model_fitSEXP, SEXP X_testSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List& >::type model_fit(model_fitSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X_test(X_testSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(predict_fast_lm(model_fit, X_test, alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_fastBayesReg_sim_linear_reg", (DL_FUNC) &_fastBayesReg_sim_linear_reg, 6},
@@ -115,6 +128,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastBayesReg_rand_left_trucnorm", (DL_FUNC) &_fastBayesReg_rand_left_trucnorm, 5},
     {"_fastBayesReg_rand_right_trucnorm", (DL_FUNC) &_fastBayesReg_rand_right_trucnorm, 5},
     {"_fastBayesReg_fast_horseshoe_lm", (DL_FUNC) &_fastBayesReg_fast_horseshoe_lm, 9},
+    {"_fastBayesReg_predict_fast_lm", (DL_FUNC) &_fastBayesReg_predict_fast_lm, 3},
     {NULL, NULL, 0}
 };
 

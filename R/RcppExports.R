@@ -168,3 +168,31 @@ fast_horseshoe_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning 
     .Call(`_fastBayesReg_fast_horseshoe_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda)
 }
 
+#'@title Prediction with fast Bayesian linear regression fitting
+#'@param model_fit  output list object of fast Bayesian linear regression fitting (see value of \link{fast_horseshoe_lm} as an example)
+#'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
+#'@param alpha posterior predictive credible level \eqn{\alpha \in (0,1)}. The default value is \eqn{0.95}.
+#'@return a list object consisting of three components
+#'\describe{
+#'\item{mean}{a vector of \eqn{n} posterior predictive mean values}
+#'\item{ucl}{a vector of \eqn{n}  posterior \eqn{\alpha} level upper credible limits}
+#'\item{lcl}{a vector of \eqn{n}  posterior \eqn{\alpha} level lower credible limits}
+#'\item{median}{a vector of \eqn{n}  posterior predictive median values}
+#'\item{sd}{a vector of \eqn{n}  posterior predictive standard deviation values}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'train_idx = 1:round(length(dat$y)/2)
+#'test_idx = setdiff(1:length(dat$y),train_idx)
+#'res <- fast_horseshoe_lm(dat$y[train_idx],dat$X[train_idx,])
+#'pred_res <- predict_fast_lm(res,dat$X[test_idx,])
+#'plot(dat$y[test_idx,],pred_res$mean,
+#'type="p",pch=19,cex=0.5,col="blue",asp=1,xlab="Observations",
+#'ylab = "Predictions")
+#'abline(0,1)
+#'@export
+predict_fast_lm <- function(model_fit, X_test, alpha = 0.95) {
+    .Call(`_fastBayesReg_predict_fast_lm`, model_fit, X_test, alpha)
+}
+

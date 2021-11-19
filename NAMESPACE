@@ -3,6 +3,7 @@
 export(comp_sparse_SSE)
 export(fast_horseshoe_lm)
 export(fast_normal_lm)
+export(predict_fast_lm)
 export(rand_left_trucnorm)
 export(rand_left_trucnorm0)
 export(rand_right_trucnorm)

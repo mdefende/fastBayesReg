@@ -20,7 +20,7 @@ wrap_horseshoe(
 
 \item{X}{n x p matrix of candidate predictors}
 
-\item{method.tau}{method for handling $\tau$. Select "truncatedCauchy" for full Bayes with the Cauchy prior truncated to [1/p, 1], "halfCauchy" for full Bayes with the half-Cauchy prior, or "fixed" to use a fixed value (an empirical Bayes estimate, for example).}
+\item{method.tau}{method for handling \eqn{\tau}. Select "truncatedCauchy" for full Bayes with the Cauchy prior truncated to \eqn{[1/p, 1]}, "halfCauchy" for full Bayes with the half-Cauchy prior, or "fixed" to use a fixed value (an empirical Bayes estimate, for example).}
 
 \item{burn}{number of iterations before start to save}
 
@@ -28,14 +28,14 @@ wrap_horseshoe(
 
 \item{thin}{number of iterations to skip between two saved iterations}
 
-\item{method.sigma}{method for handling $\sigma$. Select "Jeffreys" for full Bayes with Jeffrey's prior on the error variance $\sigma^2$, or "fixed" to use a fixed value (an empirical Bayes estimate, for example).}
+\item{method.sigma}{method for handling \eqn{\sigma^{2}}{\sigma^2}. Select "Jeffreys" for full Bayes with Jeffrey's prior on the error variance \eqn{\sigma^{2}}{\sigma^2}, or "fixed" to use a fixed value (an empirical Bayes estimate, for example).}
 
-\item{...}{other parameters (see horseshoe function in horseshoe package)}
+\item{...}{other parameters (see \link{horseshoe})}
 }
 \value{
 a list of object consisting of two components
 \describe{
-\item{betacoef}{a vector of posterior mean of p regression coeficients}
+\item{betacoef}{a vector of posterior mean of \eqn{p} regression coeficients}
 \item{elapsed}{running time}
 }
 }
