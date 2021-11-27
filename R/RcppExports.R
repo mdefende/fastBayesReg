@@ -5,6 +5,32 @@
 #'@useDynLib fastBayesReg, .registration=TRUE
 NULL
 
+#'@title Accurately compute log(1-exp(-x)) for x > 0
+#'@param x a vector of nonnegative numbers
+#'@return a vector of values of log(1-exp(-x))
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'x <- seq(0,10,length=1000)
+#'y <- log1mexpm(x)
+#'plot(x,y,type="l")
+#'@export
+log1mexpm <- function(x) {
+    .Call(`_fastBayesReg_log1mexpm`, x)
+}
+
+#'@title Accurately compute log(1+exp(x))
+#'@param x a vector of real numbers
+#'@return a vector of values of log(1+exp(x))
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'x <- seq(-100,100,length=1000)
+#'y <- log1pexp(x)
+#'plot(x,y,type="l")
+#'@export
+log1pexp <- function(x) {
+    .Call(`_fastBayesReg_log1pexp`, x)
+}
+
 #'@title Simulate data from the logistic regression model
 #'@param n sample size
 #'@param p number of candidate predictors
@@ -166,6 +192,100 @@ rand_right_trucnorm <- function(n, mu, sigma, upper, ratio = 1.0) {
 #'@export
 fast_horseshoe_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.0, b_sigma = 0.0, A_tau = 1, A_lambda = 1) {
     .Call(`_fastBayesReg_fast_horseshoe_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda)
+}
+
+#'@title Fast Bayesian high-dimensional linear regression with horseshoe priors using slice sampler
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the global shrinkage parameter
+#'@param A_lambda scale parameter in the half Cauchy prior of the local shrinkage parameter
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{lambda}{a vector of posterior mean of p local shrinkage parameters}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the global parameter}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{betacoef}{a matrix of MCMC samples of p regression coeficients}
+#'\item{lambda}{a matrix of MCMC samples of p local shrinkage parameters}
+#'\item{sigma2_eps}{a vector of MCMC samples of the noise variance}
+#'\item{tau2}{a vector of MCMC samples of the global shrinkage parameter}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2022)
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_horseshoe_ss_lm(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_horseshoe_ss_lm(y,X))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_horseshoe_tab <- tab
+#'print(fast_horseshoe_tab)
+#'@export
+fast_horseshoe_ss_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.0, b_sigma = 0.0, A_tau = 1, A_lambda = 1) {
+    .Call(`_fastBayesReg_fast_horseshoe_ss_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda)
+}
+
+#'@title Fast Bayesian high-dimensional linear regression with horseshoe priors
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the global shrinkage parameter
+#'@param A_lambda scale parameter in the half Cauchy prior of the local shrinkage parameter
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{lambda}{a vector of posterior mean of p local shrinkage parameters}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{b_lambda}{posterior mean of the rate parameter in the prior for local shrinkage parameters}
+#'\item{tau2}{posterior mean of the global parameter}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{betacoef}{a matrix of MCMC samples of p regression coeficients}
+#'\item{lambda}{a matrix of MCMC samples of p local shrinkage parameters}
+#'\item{sigma2_eps}{a vector of MCMC samples of the noise variance}
+#'\item{b_lambda}{a vector of MCMC samples of the rate parameter in the prior for local shrinkage parameters}
+#'\item{tau2}{a vector of MCMC samples of the global shrinkage parameter}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2022)
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_horseshoe_ss_lm(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_horseshoe_ss_lm(y,X))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_horseshoe_tab <- tab
+#'print(fast_horseshoe_tab)
+#'@export
+fast_horseshoe_hd_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.0, b_sigma = 0.0, A_tau = 1, A_lambda = 1) {
+    .Call(`_fastBayesReg_fast_horseshoe_hd_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda)
 }
 
 #'@title Prediction with fast Bayesian linear regression fitting

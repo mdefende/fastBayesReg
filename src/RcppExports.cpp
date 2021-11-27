@@ -11,6 +11,28 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// log1mexpm
+arma::vec log1mexpm(arma::vec& x);
+RcppExport SEXP _fastBayesReg_log1mexpm(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(log1mexpm(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// log1pexp
+arma::vec log1pexp(arma::vec& x);
+RcppExport SEXP _fastBayesReg_log1pexp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(log1pexp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
 // sim_linear_reg
 Rcpp::List sim_linear_reg(int n, int p, int q, double R2, double X_cor, double beta_size);
 RcppExport SEXP _fastBayesReg_sim_linear_reg(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, SEXP R2SEXP, SEXP X_corSEXP, SEXP beta_sizeSEXP) {
@@ -107,6 +129,44 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fast_horseshoe_ss_lm
+Rcpp::List fast_horseshoe_ss_lm(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double a_sigma, double b_sigma, double A_tau, double A_lambda);
+RcppExport SEXP _fastBayesReg_fast_horseshoe_ss_lm(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP a_sigmaSEXP, SEXP b_sigmaSEXP, SEXP A_tauSEXP, SEXP A_lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type a_sigma(a_sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type b_sigma(b_sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< double >::type A_lambda(A_lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_horseshoe_ss_lm(y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fast_horseshoe_hd_lm
+Rcpp::List fast_horseshoe_hd_lm(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double a_sigma, double b_sigma, double A_tau, double A_lambda);
+RcppExport SEXP _fastBayesReg_fast_horseshoe_hd_lm(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP a_sigmaSEXP, SEXP b_sigmaSEXP, SEXP A_tauSEXP, SEXP A_lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type a_sigma(a_sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type b_sigma(b_sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< double >::type A_lambda(A_lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_horseshoe_hd_lm(y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, A_lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
 // predict_fast_lm
 Rcpp::List predict_fast_lm(Rcpp::List& model_fit, arma::mat& X_test, double alpha);
 RcppExport SEXP _fastBayesReg_predict_fast_lm(SEXP model_fitSEXP, SEXP X_testSEXP, SEXP alphaSEXP) {
@@ -122,12 +182,16 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_fastBayesReg_log1mexpm", (DL_FUNC) &_fastBayesReg_log1mexpm, 1},
+    {"_fastBayesReg_log1pexp", (DL_FUNC) &_fastBayesReg_log1pexp, 1},
     {"_fastBayesReg_sim_linear_reg", (DL_FUNC) &_fastBayesReg_sim_linear_reg, 6},
     {"_fastBayesReg_fast_normal_lm", (DL_FUNC) &_fastBayesReg_fast_normal_lm, 8},
     {"_fastBayesReg_rand_left_trucnorm0", (DL_FUNC) &_fastBayesReg_rand_left_trucnorm0, 3},
     {"_fastBayesReg_rand_left_trucnorm", (DL_FUNC) &_fastBayesReg_rand_left_trucnorm, 5},
     {"_fastBayesReg_rand_right_trucnorm", (DL_FUNC) &_fastBayesReg_rand_right_trucnorm, 5},
     {"_fastBayesReg_fast_horseshoe_lm", (DL_FUNC) &_fastBayesReg_fast_horseshoe_lm, 9},
+    {"_fastBayesReg_fast_horseshoe_ss_lm", (DL_FUNC) &_fastBayesReg_fast_horseshoe_ss_lm, 9},
+    {"_fastBayesReg_fast_horseshoe_hd_lm", (DL_FUNC) &_fastBayesReg_fast_horseshoe_hd_lm, 9},
     {"_fastBayesReg_predict_fast_lm", (DL_FUNC) &_fastBayesReg_predict_fast_lm, 3},
     {NULL, NULL, 0}
 };
