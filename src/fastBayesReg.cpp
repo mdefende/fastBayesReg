@@ -1,10 +1,13 @@
 #include <RcppArmadillo.h>
 
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::interfaces(r, cpp)]]
+
 using namespace Rcpp;
 using namespace arma;
 
 //'@importFrom Rcpp evalCpp
+//'@importFrom pgdraw pgdraw
 //'@useDynLib fastBayesReg, .registration=TRUE
 
 #define LOG2 0.693147180559945
@@ -54,7 +57,7 @@ arma::vec log1pexp(arma::vec& x){
 	return y;
 }
 
-//'@title Simulate data from the logistic regression model
+//'@title Simulate data from the linear regression model
 //'@param n sample size
 //'@param p number of candidate predictors
 //'@param q number of nonzero predictors
@@ -100,6 +103,63 @@ Rcpp::List sim_linear_reg(int n = 100, int p = 20, int q = 5,
                            Named("sigma2") = sigma2,
                            Named("X_cor") = X_cor);
 }
+
+//'@title Simulate data from the logistic regression model
+//'@param n sample size
+//'@param p number of candidate predictors
+//'@param q number of nonzero predictors
+//'@param R2 R-squared indicating the proportion of variation explained by the predictors
+//'@param beta_size effect size of beta coefficients
+//'@param X_cor correlation between covariates
+//'@return a list objects consisting of the following components
+//'\describe{
+//'\item{y}{vector of n outcome variables}
+//'\item{X}{n x p matrix of candidate predictors}
+//'\item{betacoef}{vector of p regression coeficients}
+//'\item{R2}{R-squared indicating the proportion of variation explained by the predictors}
+//'\item{sigma2}{noise variance}
+//'\item{X_cor}{correlation between covariates}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'dat<-sim_logit_reg(n=1000,p=20,X_var = 1,X_cor=0.9,q=10)
+//'summary(with(dat,glm(y~0+X,family=binomial())))
+//'@export
+// [[Rcpp::export]]
+Rcpp::List sim_logit_reg(int n = 100, int p = 20, int q = 5,
+                          double X_cor = 0.5, double X_var = 10,
+                          double beta_size = 1){
+	arma::mat x = sqrt(1.0 - X_cor)*arma::randn<arma::mat>(n,p);
+	arma::vec z = sqrt(X_cor)*arma::randn<arma::vec>(n);
+	int qh = q/2;
+	arma::vec beta_nonzero = arma::repmat(vec({beta_size,-beta_size}),qh,1);
+	if(q>2*qh){
+		beta_nonzero = arma::join_cols(beta_nonzero,vec({beta_size}));
+	}
+	for(arma::uword i=0;i<x.n_cols;i++){
+		x.col(i) += z;
+	}
+	x *= sqrt(X_var);
+	arma::vec mu = x.cols(0,q-1L)*beta_nonzero;
+	arma::vec prob = 1.0/(1+exp(-mu));
+	arma::uvec y;
+	y.zeros(n);
+	arma::uvec idx1 = arma::find(arma::randu(n) < prob);
+	y.elem(idx1).ones();
+	double var_y = arma::var(arma::conv_to<arma::vec>::from(y));
+	double R2 = 0.0;
+	if(var_y>0)
+		R2 = arma::var(prob)/var_y;
+
+	return Rcpp::List::create(Named("y") = y,
+                           Named("X") = x,
+                           Named("betacoef") = arma::join_cols(beta_nonzero,arma::zeros<arma::vec>(p-q)),
+                           Named("R2") = R2,
+                           Named("prob") = prob,
+                           Named("X_cor") = X_cor,
+                           Named("X_var") = X_var);
+}
+
 
 void one_step_update_big_p(arma::vec& betacoef, double& sigma2_eps, double& tau2,
                      double& b_tau, arma::vec& mu, arma::vec& ys,  arma::mat& V, arma::vec& d,arma::vec& d2,
@@ -277,6 +337,471 @@ Rcpp::List fast_normal_lm(arma::vec& y, arma::mat& X,
                            Named("elapsed") = elapsed);
 }
 
+void one_step_logit_normal_big_n(arma::vec& betacoef, double& tau2, double& b_tau,
+                                 arma::vec& omega, arma::vec& mu,
+                           arma::vec& y_s, arma::vec& Xty_s, arma::mat& X,
+                           double A2_tau, int p, int n, Rcpp::Function& pgdraw){
+
+	//update beta
+	double inv_tau2 = 1.0/tau2;
+	arma::mat OmegaX = X;
+	for(int j=0;j<p;j++){
+		OmegaX.col(j) %= omega;
+	}
+	arma::mat XtX = X.t()*OmegaX;
+	XtX.diag() += inv_tau2;
+	arma::mat R = arma::chol(XtX);
+	arma::vec b = arma::solve(R.t(),Xty_s,solve_opts::fast);
+	arma::vec alpha;
+	alpha.randn(p);
+	betacoef = arma::solve(R,alpha+b,solve_opts::fast);
+
+	//update omega
+	mu = X*betacoef;
+	omega = Rcpp::as<arma::vec>(pgdraw(1.0,NumericVector(mu.begin(),mu.end())));
+
+	//update tau2
+	double sum_beta2 = arma::accu(betacoef%betacoef);
+	inv_tau2 = randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau+0.5*sum_beta2)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2_tau + inv_tau2)));
+	tau2 = 1.0/inv_tau2;
+
+}
+
+void one_step_logit_normal_big_p(arma::vec& betacoef, double& tau2, double& b_tau,
+                                 arma::vec& omega, arma::vec& mu,
+                                 arma::vec& y_s,  arma::mat& XXt,
+                                 arma::mat& X,
+                                 double A2_tau, int p, int n,
+                                 Rcpp::Function& pgdraw){
+
+	//update beta
+	arma::vec inv_omega = 1.0/omega;
+	arma::vec alpha1;
+	alpha1.randn(p);
+	alpha1 *= sqrt(tau2);
+	arma::vec alpha2;
+	alpha2.randn(n);
+	alpha2 %= sqrt(inv_omega);
+	arma::mat Omega0 = tau2*XXt;
+	/*for(int i=0;i<n;i++){
+		Omega0(i,i) += inv_omega(i);
+	}*/
+	Omega0.diag() += inv_omega;
+
+	arma::vec beta_s = arma::solve(Omega0,y_s%inv_omega - X*alpha1 - alpha2,solve_opts::fast);
+	betacoef = alpha1 + tau2*X.t()*beta_s;
+
+	//update omega
+	mu = X*betacoef;
+	omega = Rcpp::as<arma::vec>(pgdraw(1.0,NumericVector(mu.begin(),mu.end())));
+
+	//update tau2
+	double sum_beta2 = arma::accu(betacoef%betacoef);
+	double inv_tau2 = randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau+0.5*sum_beta2)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2_tau + inv_tau2)));
+	tau2 = 1.0/inv_tau2;
+
+}
+
+
+
+//'@title Fast Bayesian logistic regression with normal priors
+//'@param y vector of n binrary outcome variables taking values 0 or 1
+//'@param X n x p matrix of candidate predictors
+//'@param mcmc_sample number of MCMC iterations saved
+//'@param burnin number of iterations before start to save
+//'@param thinning number of iterations to skip between two saved iterations
+//'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+//'@return a list object consisting of three components
+//'\describe{
+//'\item{post_mean}{a list object of four components for posterior mean statistics}
+//'\describe{
+//'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+//'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+//'\item{mu}{a vector of posterior predictive mean for linear predictor of the n training sample}
+//'\item{prob}{a vector of posterior predictive probability of the n training sample}
+//'}
+//'\item{mcmc}{a list object of three components for MCMC samples}
+//'\describe{
+//'\item{betacoef}{a matrix of MCMC samples for p regression coeficients. Each column is one MCMC sample}
+//'\item{tau2}{a vector of MCMC samples of global shrinkage parameters}
+//'}
+//'\item{elapsed}{running time}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'set.seed(2022)
+//'dat1 <- sim_logit_reg(n=2000,p=200,X_cor=0.9,X_var=10,q=10,beta_size=5)
+//'res1 <- with(dat1,fast_normal_logit(y,X))
+//'res1_glmnet <- with(dat1,wrap_glmnet(y,X,alpha=0.5,family=binomial()))
+//'dat2 <- sim_logit_reg(n=200,p=2000,X_cor=0.9,X_var=10,q=10,beta_size=5)
+//'res2 <- with(dat2,fast_normal_logit(y,X,burnin=5000))
+//'res2_glmnet <- with(dat2,wrap_glmnet(y,X,alpha=0.5,family=binomial()))
+//'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+//'comp_sparse_SSE(dat1$betacoef,res1_glmnet$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2_glmnet$betacoef)),
+//'time=c(res1$elapsed,res1_glmnet$elapsed,res2$elapsed,res2_glmnet$elapsed))
+//'rownames(tab)<-c("n = 2000, p = 200 Bayes","n = 2000, p = 200 glmnet",
+//'"n = 200, p = 2000 Bayes","n = 200, p = 2000 glmnet")
+//'normal_logit_tab <- tab
+//'print(normal_logit_tab)
+//'@export
+// [[Rcpp::export]]
+Rcpp::List fast_normal_logit(arma::vec& y, arma::mat& X,
+                          int mcmc_sample = 500,
+                          int burnin = 500, int thinning = 1,
+                          double a_sigma = 0.01, double b_sigma = 0.01,
+                          double A_tau = 1){
+
+	arma::wall_clock timer;
+	timer.tic();
+
+
+	int p = X.n_cols;
+	int n = X.n_rows;
+
+	double A2_tau = A_tau*A_tau;
+	double b_tau = A2_tau;
+	double tau2 = b_tau;
+
+	arma::vec y_s = y - arma::ones<arma::vec>(n)*0.5;
+
+
+	Rcpp::Environment pkg = Rcpp::Environment::namespace_env("pgdraw");
+	Rcpp::Function pgdraw = pkg["pgdraw"];
+  Rcpp::NumericVector zeros(n,0.0);
+	arma::vec betacoef;
+	betacoef.zeros(p);
+	arma::vec mu;
+	mu.zeros(n);
+	arma::vec omega = Rcpp::as<arma::vec>(pgdraw(1.0,zeros));
+
+	arma::mat betacoef_list;
+	arma::mat mu_list;
+	arma::vec tau2_list;
+
+	betacoef_list.zeros(p,mcmc_sample);
+	mu_list.zeros(n,mcmc_sample);
+	tau2_list.zeros(mcmc_sample);
+
+
+	if(p<n){
+		arma::vec Xty_s = X.t()*y_s;
+		for(int iter=0;iter<burnin;iter++){
+			one_step_logit_normal_big_n(betacoef, tau2, b_tau,
+                               omega, mu,
+                               y_s, Xty_s,  X,
+                               A2_tau, p, n, pgdraw);
+		}
+		for(int iter=0;iter<mcmc_sample;iter++){
+			for(int j=0;j<thinning;j++){
+				one_step_logit_normal_big_n(betacoef, tau2, b_tau,
+                                omega, mu,
+                                y_s, Xty_s,  X,
+                                A2_tau, p, n, pgdraw);
+			}
+			betacoef_list.col(iter) = betacoef;
+			tau2_list(iter) = tau2;
+		}
+	} else{
+		arma::mat XXt = X*X.t();
+		for(int iter=0;iter<burnin;iter++){
+			one_step_logit_normal_big_p(betacoef, tau2, b_tau,
+                               omega, mu,
+                               y_s, XXt,  X,
+                               A2_tau, p, n, pgdraw);
+		}
+		for(int iter=0;iter<mcmc_sample;iter++){
+			for(int j=0;j<thinning;j++){
+				one_step_logit_normal_big_p(betacoef, tau2, b_tau,
+                                omega, mu,
+                                y_s, XXt,  X,
+                                A2_tau, p, n, pgdraw);
+			}
+			betacoef_list.col(iter) = betacoef;
+			tau2_list(iter) = tau2;
+		}
+
+	}
+
+	betacoef = arma::mean(betacoef_list,1);
+	tau2 = arma::mean(tau2_list);
+	mu =  X*betacoef;
+
+	Rcpp::List post_mean = Rcpp::List::create(Named("betacoef") = betacoef,
+                                           Named("tau2") = tau2,
+                                           Named("mu") = mu,
+                                           Named("prob") = 1.0/(1.0+exp(-mu)));
+	Rcpp::List mcmc = Rcpp::List::create(Named("betacoef") = betacoef_list,
+                                      Named("tau2") = tau2_list);
+
+	double elapsed = timer.toc();
+	return Rcpp::List::create(Named("post_mean") = post_mean,
+                           Named("mcmc") = mcmc,
+                           Named("elapsed") = elapsed);
+}
+
+void one_step_logit_horseshoe_big_n(arma::vec& betacoef, double& tau2, double& b_tau,
+                                 arma::vec& omega, arma::vec& lambda, arma::vec& b_lambda,
+                                 arma::vec& mu, arma::vec& y_s, arma::vec& Xty_s, arma::mat& X,
+                                 double& A2_tau, double& A2_lambda,
+                                 int& p, int& n, Rcpp::Function& pgdraw){
+
+	//update beta
+	double inv_tau2 = 1.0/tau2;
+	arma::vec inv_lambda2 = 1.0/(lambda%lambda);
+	arma::mat OmegaX = X;
+	for(int j=0;j<p;j++){
+		OmegaX.col(j) %= omega;
+	}
+	arma::mat XtX = X.t()*OmegaX;
+	XtX.diag() += inv_tau2*inv_lambda2;
+	arma::mat R = arma::chol(XtX);
+	arma::vec b = arma::solve(R.t(),Xty_s,solve_opts::fast);
+	arma::vec alpha;
+	alpha.randn(p);
+	betacoef = arma::solve(R,alpha+b,solve_opts::fast);
+
+	//update omega
+	mu = X*betacoef;
+	omega = Rcpp::as<arma::vec>(pgdraw(1.0,NumericVector(mu.begin(),mu.end())));
+
+	//update tau2
+	arma::vec betacoef2 = betacoef%betacoef;
+	double sum_beta2_inv_lambda2 = arma::accu(betacoef2%inv_lambda2);
+	inv_tau2 = randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau+0.5*sum_beta2_inv_lambda2)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2_tau + inv_tau2)));
+	tau2 = 1.0/inv_tau2;
+
+	//update lambda
+	inv_lambda2 = arma::randg<arma::vec>(p,distr_param(1.0,1.0));
+	inv_lambda2 /= b_lambda + 0.5*betacoef2/tau2;
+	b_lambda = randg<arma::vec>(p,distr_param(1.0, 1.0));
+	b_lambda /= 1.0/A2_lambda+inv_lambda2;
+	lambda = sqrt(1.0/inv_lambda2);
+
+}
+
+void one_step_logit_horseshoe_big_p(arma::vec& betacoef, double& tau2, double& b_tau,
+                                 arma::vec& omega,arma::vec& lambda, arma::vec& b_lambda,
+                                 arma::vec& mu, arma::vec& y_s, arma::mat& X,
+                                 double& A2_tau, double& A2_lambda,
+                                 int& p, int& n,
+                                 Rcpp::Function& pgdraw){
+
+	//update beta
+	arma::vec inv_omega = 1.0/omega;
+	arma::vec alpha1;
+	alpha1.randn(p);
+	alpha1 *= sqrt(tau2);
+	alpha1 %= lambda;
+	arma::vec alpha2;
+	alpha2.randn(n);
+	alpha2 %= sqrt(inv_omega);
+	arma::mat XLambda = X;
+	for(int i=0;i<n;i++){
+		XLambda.row(i) %= lambda.t();
+	}
+	arma::mat Omega0 = XLambda*XLambda.t();
+
+	Omega0.diag() += inv_omega/tau2;
+
+
+	arma::vec beta_s = arma::solve(Omega0, y_s%inv_omega - X*alpha1 - alpha2);
+	betacoef = alpha1 + lambda%(XLambda.t()*beta_s);
+
+	//update omega
+	mu = X*betacoef;
+	omega = Rcpp::as<arma::vec>(pgdraw(1.0,NumericVector(mu.begin(),mu.end())));
+
+	//update lambda
+	//arma::vec betacoef2 = betacoef%betacoef;
+
+	arma::vec inv_lambda2 = 1.0/(lambda%lambda);
+	// arma::vec B = 0.5*betacoef2/tau2;
+	// b_lambda = arma::randu<arma::vec>(p)%(A2_lambda/(1.0+A2_lambda*inv_lambda2));
+	// arma::vec upsilon = arma::randu<arma::vec>(p);
+	// arma::vec C = 1.0/b_lambda - 1.0/A2_lambda;
+	// inv_lambda2 = -arma::log1p(-upsilon%(1.0 - exp(-B%C)))/B;
+
+	// arma::vec inv_lambda2 = arma::randg<arma::vec>(p,distr_param(1.0,1.0));
+	// inv_lambda2 /= b_lambda + 0.5*betacoef2/tau2;
+	// b_lambda = randg<arma::vec>(p,distr_param(1.0, 1.0));
+	// b_lambda /= 1.0/A2_lambda+inv_lambda2;
+
+	//lambda = sqrt(1.0/inv_lambda2);
+
+
+	//update tau2
+	arma::vec betacoef2 = betacoef%betacoef;
+	double sum_beta2_inv_lambda2 = arma::accu(betacoef2%inv_lambda2);
+	double inv_tau2 = randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau+0.5*sum_beta2_inv_lambda2)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2_tau + inv_tau2)));
+	tau2 = 1.0/inv_tau2;
+
+	//update lambda
+	inv_lambda2 = arma::randg<arma::vec>(p,distr_param(1.0,1.0));
+	inv_lambda2 /= b_lambda + 0.5*betacoef2/tau2;
+	b_lambda = randg<arma::vec>(p,distr_param(1.0, 1.0));
+	b_lambda /= 1.0/A2_lambda+inv_lambda2;
+	lambda = sqrt(1.0/inv_lambda2);
+
+}
+
+
+
+//'@title Fast Bayesian logistic regression with horseshoe priors
+//'@param y vector of n binary outcome variables taking values 0 or 1
+//'@param X n x p matrix of candidate predictors
+//'@param mcmc_sample number of MCMC iterations saved
+//'@param burnin number of iterations before start to save
+//'@param thinning number of iterations to skip between two saved iterations
+//'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+//'@return a list object consisting of three components
+//'\describe{
+//'\item{post_mean}{a list object of five components for posterior mean statistics}
+//'\describe{
+//'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+//'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+//'\item{lambda}{a vector of posterior mean of p local shrinkage parameters}
+//'\item{mu}{a vector of posterior predictive mean for linear predictor of the n training sample}
+//'\item{prob}{a vector of posterior predictive probability of the n training sample}
+//'}
+//'\item{mcmc}{a list object of three components for MCMC samples}
+//'\describe{
+//'\item{betacoef}{a matrix of MCMC samples for p regression coeficients. Each column is one MCMC sample}
+//'\item{tau2}{a vector of MCMC samples of global shrinkage parameters}
+//'\item{lambda}{a matrix of MCMC samples of p local shrinkage parameters. Each column is one MCMC sample}
+//'}
+//'\item{elapsed}{running time}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'set.seed(2022)
+//'dat1 <- sim_logit_reg(n=2000,p=200,X_cor=0.9,X_var=10,q=10,beta_size=5)
+//'res1 <- with(dat1,fast_horseshoe_logit(y,X,A_tau=0.001,A_lambda=0.001))
+//'res1_glmnet <- with(dat1,wrap_glmnet(y,X,alpha=0.5,family=binomial()))
+//'dat2 <- sim_logit_reg(n=200,p=2000,X_cor=0.9,X_var=10,q=10,beta_size=5)
+//'res2 <- with(dat2,fast_horseshoe_logit(y,X,burnin=5000,mcmc_sample=500,A_tau=0.001,A_lambda=0.001))
+//'res2_glmnet <- with(dat2,wrap_glmnet(y,X,alpha=0.5,family=binomial()))
+//'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+//'comp_sparse_SSE(dat1$betacoef,res1_glmnet$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2_glmnet$betacoef)),
+//'time=c(res1$elapsed,res1_glmnet$elapsed,res2$elapsed,res2_glmnet$elapsed))
+//'rownames(tab)<-c("n = 2000, p = 200 Bayes","n = 2000, p = 200 glmnet",
+//'"n = 200, p = 2000 Bayes","n = 200, p = 2000 glmnet")
+//'normal_logit_tab <- tab
+//'print(normal_logit_tab)
+//'@export
+// [[Rcpp::export]]
+Rcpp::List fast_horseshoe_logit(arma::vec& y, arma::mat& X,
+                             int mcmc_sample = 500,
+                             int burnin = 500, int thinning = 1,
+                             double A_tau = 1, double A_lambda = 1){
+
+	arma::wall_clock timer;
+	timer.tic();
+
+
+	int p = X.n_cols;
+	int n = X.n_rows;
+
+	double A2_tau = A_tau*A_tau;
+	double b_tau = A2_tau;
+	double tau2 = b_tau;
+	double A2_lambda = A_lambda*A_lambda;
+
+	arma::vec y_s = y - arma::ones<arma::vec>(n)*0.5;
+
+
+	Rcpp::Environment pkg = Rcpp::Environment::namespace_env("pgdraw");
+	Rcpp::Function pgdraw = pkg["pgdraw"];
+	Rcpp::NumericVector zeros(n,0.0);
+	arma::vec betacoef;
+	arma::vec lambda;
+	arma::vec b_lambda;
+	arma::vec mu;
+
+	lambda.ones(p);
+	b_lambda.ones(p);
+	betacoef.zeros(p);
+	mu.zeros(n);
+	arma::vec omega = Rcpp::as<arma::vec>(pgdraw(1.0,zeros));
+
+	arma::mat betacoef_list;
+	arma::mat lambda_list;
+	arma::vec tau2_list;
+
+	betacoef_list.zeros(p,mcmc_sample);
+	lambda_list.zeros(p,mcmc_sample);
+	tau2_list.zeros(mcmc_sample);
+
+
+	if(p<n){
+		arma::vec Xty_s = X.t()*y_s;
+		for(int iter=0;iter<burnin;iter++){
+			one_step_logit_horseshoe_big_n(betacoef, tau2, b_tau,
+                               omega, lambda, b_lambda,mu,
+                               y_s, Xty_s,  X,
+                               A2_tau, A2_lambda, p, n, pgdraw);
+		}
+		for(int iter=0;iter<mcmc_sample;iter++){
+			for(int j=0;j<thinning;j++){
+				one_step_logit_horseshoe_big_n(betacoef, tau2, b_tau,
+                                   omega, lambda, b_lambda,mu,
+                                   y_s, Xty_s,  X,
+                                   A2_tau, A2_lambda, p, n, pgdraw);
+			}
+			betacoef_list.col(iter) = betacoef;
+			lambda_list.col(iter) = lambda;
+			tau2_list(iter) = tau2;
+		}
+	} else{
+		//arma::mat XXt = X*X.t();
+		tau2 = 1.0/p;
+		for(int iter=0;iter<burnin;iter++){
+			one_step_logit_horseshoe_big_p(betacoef, tau2, b_tau,
+                               omega, lambda, b_lambda, mu,
+                               y_s,  X,
+                               A2_tau, A2_lambda, p, n, pgdraw);
+		}
+		for(int iter=0;iter<mcmc_sample;iter++){
+			for(int j=0;j<thinning;j++){
+				one_step_logit_horseshoe_big_p(betacoef, tau2, b_tau,
+                                   omega,lambda, b_lambda, mu,
+                                   y_s,  X,
+                                   A2_tau, A2_lambda, p, n, pgdraw);
+			}
+			betacoef_list.col(iter) = betacoef;
+			lambda_list.col(iter) = lambda;
+			tau2_list(iter) = tau2;
+		}
+
+	}
+
+	betacoef = arma::mean(betacoef_list,1);
+	tau2 = arma::mean(tau2_list);
+	mu =  X*betacoef;
+
+	Rcpp::List post_mean = Rcpp::List::create(Named("betacoef") = betacoef,
+                                           Named("tau2") = tau2,
+                                           Named("lambda") = lambda,
+                                           Named("mu") = mu,
+                                           Named("prob") = 1.0/(1.0+exp(-mu)));
+	Rcpp::List mcmc = Rcpp::List::create(Named("betacoef") = betacoef_list,
+                                      Named("tau2") = tau2_list,
+                                      Named("lambda") = lambda_list);
+
+	double elapsed = timer.toc();
+	return Rcpp::List::create(Named("post_mean") = post_mean,
+                           Named("mcmc") = mcmc,
+                           Named("elapsed") = elapsed);
+}
+
+
 //'@title Simulate left standard truncated normal distribution
 //'@param n sample size
 //'@param lower the lower bound
@@ -405,11 +930,11 @@ void hs_one_step_update_big_p(arma::vec& betacoef, arma::vec& lambda,
 	for(int i=0;i<n;i++){
 		LambdaVD.col(i) %= lambda;
 	}
-	arma::mat Z = arma::eye(n,n);
-	Z += tau2*LambdaVD.t()*LambdaVD;
+	arma::mat Z = LambdaVD.t()*LambdaVD;
+	Z.diag() += inv_tau2;
 	arma::vec beta_s = arma::solve(Z,ys - VD.t()*alpha_1 - alpha_2);
 	//std::cout << beta_s.subvec(0,1) << std::endl;
-	betacoef = alpha_1 + tau2*lambda2%(VD*beta_s);
+	betacoef = alpha_1 + lambda2%(VD*beta_s);
 
 	//update lambda
 	arma::vec betacoef2 = betacoef%betacoef;
@@ -673,11 +1198,11 @@ void hs_one_step_update(arma::vec& betacoef, arma::vec& lambda,
 	for(int i=0;i<n;i++){
 		XLambda.row(i) %= lambda.t();
 	}
-	arma::mat Z = arma::eye(n,n);
-	Z += tau2*XLambda*XLambda.t();
+	arma::mat Z = XLambda*XLambda.t();
+	Z.diag() += inv_tau2;
 	arma::vec beta_s = arma::solve(Z,y - X*alpha_1 - alpha_2,arma::solve_opts::fast);
 	//std::cout << beta_s.subvec(0,1) << std::endl;
-	betacoef = alpha_1 + tau2*lambda%(XLambda.t()*beta_s);
+	betacoef = alpha_1 + lambda%(XLambda.t()*beta_s);
 	//update lambda
 	arma::vec betacoef2 = betacoef%betacoef;
 	arma::vec inv_lambda2 = arma::randg<arma::vec>(p,distr_param(1.0,1.0));
@@ -716,11 +1241,11 @@ void hs_one_step_update_slice_sampler(arma::vec& betacoef, arma::vec& lambda,
 	for(int i=0;i<n;i++){
 		XLambda.row(i) %= lambda.t();
 	}
-	arma::mat Z = arma::eye(n,n);
-	Z += tau2*XLambda*XLambda.t();
+	arma::mat Z = XLambda*XLambda.t();
+	Z.diag() += inv_tau2;
 	arma::vec beta_s = arma::solve(Z,y - X*alpha_1 - alpha_2,arma::solve_opts::fast);
 	//std::cout << beta_s.subvec(0,1) << std::endl;
-	betacoef = alpha_1 + tau2*lambda%(XLambda.t()*beta_s);
+	betacoef = alpha_1 + lambda%(XLambda.t()*beta_s);
 
 	//update lambda
 	arma::vec betacoef2 = betacoef%betacoef;
@@ -991,9 +1516,6 @@ Rcpp::List fast_horseshoe_hd_lm(arma::vec& y, arma::mat& X,
 
 	double tau2 = 1.0/p;
 
-
-
-
 	arma::vec betacoef;
 	arma::vec lambda;
 	arma::vec b_lambda;
@@ -1128,6 +1650,63 @@ Rcpp::List predict_fast_lm(Rcpp::List& model_fit, arma::mat& X_test, double alph
 
 	return pred;
 }
+
+//'@title Prediction with fast Bayesian logistic regression fitting
+//'@param model_fit  output list object of fast Bayesian logistic regression fitting (see value of \link{fast_horseshoe_lm} as an example)
+//'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
+//'@param alpha posterior predictive credible level \eqn{\alpha \in (0,1)}. The default value is \eqn{0.95}.
+//'@param cutoff threshold value for posterior predicitve probablity. The default value is 0.5
+//'@return a list object consisting of three components
+//'\describe{
+//'\item{class}{a vector of \eqn{n} predicted class indicators}
+//'\item{mean}{a vector of \eqn{n} posterior predictive mean probabilities}
+//'\item{ucl}{a vector of \eqn{n}  posterior \eqn{\alpha} level upper credible limits of probabilities}
+//'\item{lcl}{a vector of \eqn{n}  posterior \eqn{\alpha} level lower credible limits of probabilities}
+//'\item{median}{a vector of \eqn{n}  posterior predictive median probabilities}
+//'\item{sd}{a vector of \eqn{n}  standard deviations of posterior predictive probabilities}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'dat <- sim_logit_reg(n=2000,p=200,X_cor=0.9,q=6)
+//'train_idx = 1:round(length(dat$y)/2)
+//'test_idx = setdiff(1:length(dat$y),train_idx)
+//'res <- fast_normal_logit(dat$y[train_idx],dat$X[train_idx,])
+//'pred_res <- predict_fast_logit(res,dat$X[test_idx,])
+//'plot(dat$prob[test_idx,],pred_res$mean,
+//'type="p",pch=19,cex=0.5,col="blue",asp=1,xlab="True Probabilities",
+//'ylab = "Predicted Probabilities")
+//'abline(0,1)
+//'print(comp_class_acc(pred_res$class,dat$y[test_idx]))
+//'@export
+// [[Rcpp::export]]
+Rcpp::List predict_fast_logit(Rcpp::List& model_fit, arma::mat& X_test,
+                              double alpha = 0.95, double cutoff = 0.5){
+
+	Rcpp::List mcmc = model_fit["mcmc"];
+	arma::mat betacoef = mcmc["betacoef"];
+	arma::mat pred_mu = X_test*betacoef;
+	arma::mat pred_prob = 1.0/(1.0 + exp(-pred_mu));
+	double alpha_1 = (1-alpha)*0.5;
+	arma::vec pvec = {1.0 - alpha_1,alpha_1};
+	arma::vec pred_mean = arma::mean(pred_prob,1);
+	arma::mat pred_cls = arma::quantile(pred_prob,pvec,1);
+	arma::vec pred_median = arma::median(pred_prob,1);
+	arma::vec pred_sd = arma::stddev(pred_prob,0,1);
+	arma::uvec pred_class;
+	pred_class.zeros(pred_mean.n_elem);
+	pred_class.elem(arma::find(pred_mean>cutoff)).ones();
+
+
+	Rcpp::List pred = Rcpp::List::create(Named("class") = pred_class,
+																			Named("mean") = pred_mean,
+                                      Named("ucl") = pred_cls.col(0),
+                                      Named("lcl") = pred_cls.col(1),
+                                      Named("median") = pred_median,
+                                      Named("sd") = pred_sd);
+
+	return pred;
+}
+
 
 
 void scalar_img_one_step_update(arma::vec& theta, arma::uvec& delta, arma::vec& lambda,

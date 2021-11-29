@@ -63,9 +63,9 @@ Fast Bayesian high-dimensional linear regression with horseshoe priors
 \examples{
 set.seed(2022)
 dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
-res1 <- with(dat1,fast_horseshoe_hd_lm(y,X))
+res1 <- with(dat1,fast_horseshoe_ss_lm(y,X))
 dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
-res2 <- with(dat2,fast_horseshoe_hd_lm(y,X))
+res2 <- with(dat2,fast_horseshoe_ss_lm(y,X))
 tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
 comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
 time=c(res1$elapsed,res2$elapsed))

@@ -16,9 +16,9 @@
 #'}
 #'@author Jian Kang <jiankang@umich.edu>
 #'@examples
-#'dat <- sim_logit_reg()
+#'dat <- sim_logit_reg_R()
 #'@export
-sim_logit_reg <- function(n=100, p=10, q = 5, beta_size=1){
+sim_logit_reg_R <- function(n=100, p=10, q = 5, beta_size=1){
 	X = matrix(rnorm(n*p),nrow=n,ncol=p)
 	betacoef <- c(rep(beta_size*c(1,-1),length = q),rep(0,length=p-q))
 	Xbeta <- X%*%betacoef
@@ -36,7 +36,7 @@ wrap_glmnet <- function(y,X,alpha=1,intercept=FALSE,...){
 	cv_res <- glmnet::cv.glmnet(X,y,alpha=alpha,...)
 	res <- glmnet::glmnet(X,y,alpha=alpha,lambda=cv_res$lambda.1se,...)
 	elapsed <- proc.time()[3] - elapsed
-	return(list(betacoef = as.numeric(res$beta),elapsed=elapsed))
+	return(list(betacoef = as.numeric(res$beta),elapsed=elapsed,glmnet_fit=res))
 }
 
 
@@ -72,7 +72,7 @@ wrap_horseshoe <- function(y,X,method.tau="halfCauchy",
 	return(list(betacoef = hsres$BetaHat,elapsed=elapsed,hsres=hsres))
 }
 
-#'compute the sum of squared errors for sparse regression coefficients
+#'Compute the sum of squared errors for sparse regression coefficients
 #'@param truebeta a vector of true regression coefficients
 #'@param estbeta a vector of estimated regression coefficients
 #'@return a vector of three measures
@@ -100,4 +100,58 @@ comp_sparse_SSE <- function(truebeta,estbeta){
 		zero <- sum((truebeta[zero_idx] - estbeta[zero_idx])^2)
 	}
 	return(c(overall=overall,nonzero=nonzero,zero=zero))
+}
+
+#'Evaluate classification accuracy
+#'@param pred a vector of predicted class indicators, taking two distict values, e.g. 0,1
+#'@param obs a vector of observed class indicators, taking two distict values, e.g. 0,1
+#'@param levels indicator class values, default c(1,0)
+#'@return a vector of five elements TPR, FPR, FDR, ACC, BA
+#'\describe{
+#'\item{TPR}{True positive rate}
+#'\item{FPR}{False positive rate}
+#'\item{FDR}{False discovery rate}
+#'\item{ACC}{Accuracy}
+#'\item{BA}{Balanced Accuracy}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat <- sim_logit_reg(n=2000,p=20,X_cor=0.9,q=6)
+#'res <- with(dat,fast_normal_logit(y,X))
+#'res_glmnet <- with(dat,wrap_glmnet(y,X,family=binomial()))
+#'tab = rbind(comp_class_acc(as.numeric(res$post_mean$prob>0.5),dat$y),
+#'comp_class_acc(as.numeric(predict(res_glmnet$glmnet_fit,dat$X,type = "response")>0.5),dat$y))
+#'rownames(tab) = c("Bayes","glmnet")
+#'print(tab)
+#'@export
+comp_class_acc <- function(pred,obs,levels=c(1,0)){
+	f_pred = factor(pred,levels=levels)
+	f_obs = factor(obs,levels=levels)
+	tab = table(f_obs,f_pred)
+	TP = tab[1,1]
+	FN = tab[1,2]
+	FP = tab[2,1]
+	TN = tab[2,2]
+	P = TP + FN
+	N = TN + FP
+	PP = TP + FP
+
+	if(P>0)
+		TPR = TP/P
+	else
+		TPR = 0
+	if(N>0)
+		FPR = FP/N
+	else
+		FPR = 0
+
+	if(PP>0)
+		FDR = FP/PP
+	else
+		FDR = 0
+
+	ACC = (TP+TN)/(TP+TN+FP+FN)
+
+	return(c(TPR=TPR,FPR=FPR, FDR=FDR,ACC=ACC,
+					 BA = (TPR+(1-FPR))*0.5))
 }

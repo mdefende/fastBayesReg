@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{sim_linear_reg}
 \alias{sim_linear_reg}
-\title{Simulate data from the logistic regression model}
+\title{Simulate data from the linear regression model}
 \usage{
 sim_linear_reg(
   n = 100L,
@@ -38,7 +38,7 @@ a list objects consisting of the following components
 }
 }
 \description{
-Simulate data from the logistic regression model
+Simulate data from the linear regression model
 }
 \examples{
 dat<-sim_linear_reg(n=25,p=2000,X_cor=0.9,q=6)

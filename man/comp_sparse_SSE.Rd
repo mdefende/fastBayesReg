@@ -2,7 +2,7 @@
 % Please edit documentation in R/fastBayesReg.R
 \name{comp_sparse_SSE}
 \alias{comp_sparse_SSE}
-\title{compute the sum of squared errors for sparse regression coefficients}
+\title{Compute the sum of squared errors for sparse regression coefficients}
 \usage{
 comp_sparse_SSE(truebeta, estbeta)
 }
@@ -20,7 +20,7 @@ a vector of three measures
 }
 }
 \description{
-compute the sum of squared errors for sparse regression coefficients
+Compute the sum of squared errors for sparse regression coefficients
 }
 \examples{
 dat <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
