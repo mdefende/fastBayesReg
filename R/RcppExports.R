@@ -168,8 +168,8 @@ fast_normal_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1
 #'normal_logit_tab <- tab
 #'print(normal_logit_tab)
 #'@export
-fast_normal_logit <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 1) {
-    .Call(`_fastBayesReg_fast_normal_logit`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau)
+fast_normal_logit <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, A_tau = 1) {
+    .Call(`_fastBayesReg_fast_normal_logit`, y, X, mcmc_sample, burnin, thinning, A_tau)
 }
 
 #'@title Fast Bayesian logistic regression with horseshoe priors

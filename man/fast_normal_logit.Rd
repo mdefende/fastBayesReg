@@ -10,8 +10,6 @@ fast_normal_logit(
   mcmc_sample = 500L,
   burnin = 500L,
   thinning = 1L,
-  a_sigma = 0.01,
-  b_sigma = 0.01,
   A_tau = 1
 )
 }

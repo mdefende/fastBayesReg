@@ -130,17 +130,17 @@ namespace fastBayesReg {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
-    inline Rcpp::List fast_normal_logit(arma::vec& y, arma::mat& X, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double a_sigma = 0.01, double b_sigma = 0.01, double A_tau = 1) {
-        typedef SEXP(*Ptr_fast_normal_logit)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline Rcpp::List fast_normal_logit(arma::vec& y, arma::mat& X, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double A_tau = 1) {
+        typedef SEXP(*Ptr_fast_normal_logit)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_fast_normal_logit p_fast_normal_logit = NULL;
         if (p_fast_normal_logit == NULL) {
-            validateSignature("Rcpp::List(*fast_normal_logit)(arma::vec&,arma::mat&,int,int,int,double,double,double)");
+            validateSignature("Rcpp::List(*fast_normal_logit)(arma::vec&,arma::mat&,int,int,int,double)");
             p_fast_normal_logit = (Ptr_fast_normal_logit)R_GetCCallable("fastBayesReg", "_fastBayesReg_fast_normal_logit");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_fast_normal_logit(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(mcmc_sample)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thinning)), Shield<SEXP>(Rcpp::wrap(a_sigma)), Shield<SEXP>(Rcpp::wrap(b_sigma)), Shield<SEXP>(Rcpp::wrap(A_tau)));
+            rcpp_result_gen = p_fast_normal_logit(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(mcmc_sample)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thinning)), Shield<SEXP>(Rcpp::wrap(A_tau)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

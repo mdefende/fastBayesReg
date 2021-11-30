@@ -452,7 +452,6 @@ void one_step_logit_normal_big_p(arma::vec& betacoef, double& tau2, double& b_ta
 Rcpp::List fast_normal_logit(arma::vec& y, arma::mat& X,
                           int mcmc_sample = 500,
                           int burnin = 500, int thinning = 1,
-                          double a_sigma = 0.01, double b_sigma = 0.01,
                           double A_tau = 1){
 
 	arma::wall_clock timer;

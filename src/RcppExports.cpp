@@ -202,8 +202,8 @@ RcppExport SEXP _fastBayesReg_fast_normal_lm(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_s
     return rcpp_result_gen;
 }
 // fast_normal_logit
-Rcpp::List fast_normal_logit(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double a_sigma, double b_sigma, double A_tau);
-static SEXP _fastBayesReg_fast_normal_logit_try(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP a_sigmaSEXP, SEXP b_sigmaSEXP, SEXP A_tauSEXP) {
+Rcpp::List fast_normal_logit(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double A_tau);
+static SEXP _fastBayesReg_fast_normal_logit_try(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
@@ -211,18 +211,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
     Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
-    Rcpp::traits::input_parameter< double >::type a_sigma(a_sigmaSEXP);
-    Rcpp::traits::input_parameter< double >::type b_sigma(b_sigmaSEXP);
     Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
-    rcpp_result_gen = Rcpp::wrap(fast_normal_logit(y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau));
+    rcpp_result_gen = Rcpp::wrap(fast_normal_logit(y, X, mcmc_sample, burnin, thinning, A_tau));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _fastBayesReg_fast_normal_logit(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP a_sigmaSEXP, SEXP b_sigmaSEXP, SEXP A_tauSEXP) {
+RcppExport SEXP _fastBayesReg_fast_normal_logit(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_fastBayesReg_fast_normal_logit_try(ySEXP, XSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, a_sigmaSEXP, b_sigmaSEXP, A_tauSEXP));
+        rcpp_result_gen = PROTECT(_fastBayesReg_fast_normal_logit_try(ySEXP, XSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -603,7 +601,7 @@ static int _fastBayesReg_RcppExport_validate(const char* sig) {
         signatures.insert("Rcpp::List(*sim_linear_reg)(int,int,int,double,double,double)");
         signatures.insert("Rcpp::List(*sim_logit_reg)(int,int,int,double,double,double)");
         signatures.insert("Rcpp::List(*fast_normal_lm)(arma::vec&,arma::mat&,int,int,int,double,double,double)");
-        signatures.insert("Rcpp::List(*fast_normal_logit)(arma::vec&,arma::mat&,int,int,int,double,double,double)");
+        signatures.insert("Rcpp::List(*fast_normal_logit)(arma::vec&,arma::mat&,int,int,int,double)");
         signatures.insert("Rcpp::List(*fast_horseshoe_logit)(arma::vec&,arma::mat&,int,int,int,double,double)");
         signatures.insert("arma::vec(*rand_left_trucnorm0)(int,double,double)");
         signatures.insert("arma::vec(*rand_left_trucnorm)(int,double,double,double,double)");
@@ -644,7 +642,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastBayesReg_sim_linear_reg", (DL_FUNC) &_fastBayesReg_sim_linear_reg, 6},
     {"_fastBayesReg_sim_logit_reg", (DL_FUNC) &_fastBayesReg_sim_logit_reg, 6},
     {"_fastBayesReg_fast_normal_lm", (DL_FUNC) &_fastBayesReg_fast_normal_lm, 8},
-    {"_fastBayesReg_fast_normal_logit", (DL_FUNC) &_fastBayesReg_fast_normal_logit, 8},
+    {"_fastBayesReg_fast_normal_logit", (DL_FUNC) &_fastBayesReg_fast_normal_logit, 6},
     {"_fastBayesReg_fast_horseshoe_logit", (DL_FUNC) &_fastBayesReg_fast_horseshoe_logit, 7},
     {"_fastBayesReg_rand_left_trucnorm0", (DL_FUNC) &_fastBayesReg_rand_left_trucnorm0, 3},
     {"_fastBayesReg_rand_left_trucnorm", (DL_FUNC) &_fastBayesReg_rand_left_trucnorm, 5},
