@@ -979,22 +979,40 @@ void hs_one_step_update_big_p(arma::vec& betacoef, arma::vec& lambda,
 	sigma2_eps = 1.0/inv_sigma2_eps;
 }
 
+//hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
+//b_tau, mu, dys,  V,  d, d2, y, X,
+//A2, A2_lambda, a_sigma,  b_sigma, p,  n);
 
 void hs_one_step_update_big_n(arma::vec& betacoef,
                               arma::vec& lambda,
                               double& sigma2_eps, double& tau2, arma::vec& b_lambda,
-                           double& b_tau, arma::vec& mu, arma::vec& ys,
-                           arma::mat& V, arma::vec& d,arma::vec& d2,
+                           double& b_tau, arma::vec& mu, arma::vec& dys,
+                           arma::mat& V, arma::vec& d2,
                            arma::vec& y, arma::mat& X,
-                           arma::vec& Xty, arma::mat& XtX_inv,
                            double A2, double A2_lambda,
                            double a_sigma, double b_sigma,
                            int p, int n){
 
 	double inv_tau2 = 1.0/tau2;
-	double tau = sqrt(tau2);
+	//double tau = sqrt(tau2);
 	double sigma_eps = sqrt(sigma2_eps);
-	arma::vec taulambda= tau*lambda;
+	arma::vec lambda_tau = lambda*sqrt(tau2);
+	arma::mat V_d_lambda = V;
+	V_d_lambda.each_col() /= lambda_tau;
+
+	arma::mat VtV = V_d_lambda.t()*V_d_lambda;
+	VtV.diag() += d2;
+	//VtV /= sigma2_eps;
+
+	arma::mat R = arma::chol(VtV);
+	arma::vec b = arma::solve(R.t(),dys/sigma_eps,solve_opts::fast);
+	arma::vec alpha;
+	alpha.randn(p);
+	betacoef = sigma_eps*V*arma::solve(R,alpha+b,solve_opts::fast);
+
+
+
+	/*arma::vec taulambda= tau*lambda;
 	arma::vec tau2lambda2 = taulambda%taulambda;
 	arma::vec alpha_1 = arma::randn<arma::vec>(p)/d*sigma_eps;
 	arma::vec alpha_2 = arma::randn<arma::vec>(p)%taulambda*sigma_eps;
@@ -1004,6 +1022,7 @@ void hs_one_step_update_big_n(arma::vec& betacoef,
 	Z.diag() += tau2lambda2;
 	arma::vec alpha = arma::solve(Z,ts - Valpha_1 - alpha_2)/sigma2_eps;
 	betacoef = Valpha_1 + sigma2_eps*XtX_inv*alpha;
+	 */
 	arma::vec betacoef2 = betacoef%betacoef;
 	arma::vec inv_lambda2 = arma::randg<arma::vec>(p,distr_param(1.0,1.0));
   inv_lambda2 /= b_lambda + 0.5*betacoef2/tau2/sigma2_eps;
@@ -1020,6 +1039,9 @@ void hs_one_step_update_big_n(arma::vec& betacoef,
 	tau2 = 1.0/inv_tau2;
 	double inv_sigma2_eps = arma::randg<double>(distr_param(a_sigma+(p+n)/2, 1.0/(b_sigma+0.5*sum_beta2_inv_lambda2*inv_tau2+0.5*sum_eps2)));
 	sigma2_eps = 1.0/inv_sigma2_eps;
+
+	//std::cout << tau2 << std::endl;
+	//std::cout << arma::accu(lambda) << std::endl;
 }
 
 //'@title Fast Bayesian linear regression with horseshoe priors
@@ -1093,6 +1115,7 @@ Rcpp::List fast_horseshoe_lm(arma::vec& y, arma::mat& X,
 	double tau2 = 1.0/p;
 	arma::vec d2 = d%d;
 	arma::vec ys = U.t()*y;
+	arma::vec dys = d%ys;
 
 
 
@@ -1116,18 +1139,17 @@ Rcpp::List fast_horseshoe_lm(arma::vec& y, arma::mat& X,
 
 	if(p<n){
 
-		arma::mat XtX_inv = V*diagmat(1.0/d2)*V.t();
-		arma::vec Xty = X.t()*y;
+
 		for(int iter=0;iter<burnin;iter++){
 			hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
-                         b_tau, mu, ys,  V,  d, d2, y, X, Xty,  XtX_inv,
+                         b_tau, mu, dys,  V,   d2, y, X,
                          A2, A2_lambda, a_sigma,  b_sigma, p,  n);
 		}
 		for(int iter=0;iter<mcmc_sample;iter++){
 			for(int j=0;j<thinning;j++){
 				hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
-                             b_tau, mu, ys,  V,  d, d2, y, X, Xty,  XtX_inv,
-                             A2, A2_lambda, a_sigma,  b_sigma, p,  n);
+                             b_tau, mu, dys,  V,  d2, y, X, A2,
+                             A2_lambda, a_sigma,  b_sigma, p,  n);
 			}
 			betacoef_list.col(iter) = betacoef;
 			lambda_list.col(iter) = lambda;
@@ -1387,19 +1409,17 @@ Rcpp::List fast_horseshoe_ss_lm(arma::vec& y, arma::mat& X,
 		arma::svd_econ(U,d,V,X);
 
 		arma::vec d2 = d%d;
-		arma::vec ys = U.t()*y;
+		arma::vec dys = d%(U.t()*y);
 
-		arma::mat XtX_inv = V*diagmat(1.0/d2)*V.t();
-		arma::vec Xty = X.t()*y;
 		for(int iter=0;iter<burnin;iter++){
 			hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
-                            b_tau, mu, ys,  V,  d, d2, y, X, Xty,  XtX_inv,
+                            b_tau, mu, dys,  V,  d2, y, X,
                             A2, A2_lambda, a_sigma,  b_sigma, p,  n);
 		}
 		for(int iter=0;iter<mcmc_sample;iter++){
 			for(int j=0;j<thinning;j++){
 				hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
-                             b_tau, mu, ys,  V,  d, d2, y, X, Xty,  XtX_inv,
+                             b_tau, mu, dys,  V,  d2, y, X,
                              A2, A2_lambda, a_sigma,  b_sigma, p,  n);
 			}
 			betacoef_list.col(iter) = betacoef;
@@ -1540,19 +1560,17 @@ Rcpp::List fast_horseshoe_hd_lm(arma::vec& y, arma::mat& X,
 		arma::svd_econ(U,d,V,X);
 
 		arma::vec d2 = d%d;
-		arma::vec ys = U.t()*y;
+		arma::vec dys = d%(U.t()*y);
 
-		arma::mat XtX_inv = V*diagmat(1.0/d2)*V.t();
-		arma::vec Xty = X.t()*y;
 		for(int iter=0;iter<burnin;iter++){
 			hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
-                            b_tau, mu, ys,  V,  d, d2, y, X, Xty,  XtX_inv,
+                            b_tau, mu, dys,  V,   d2, y, X,
                             A2, A2_lambda, a_sigma,  b_sigma, p,  n);
 		}
 		for(int iter=0;iter<mcmc_sample;iter++){
 			for(int j=0;j<thinning;j++){
 				hs_one_step_update_big_n(betacoef,lambda, sigma2_eps, tau2,b_lambda,
-                             b_tau, mu, ys,  V,  d, d2, y, X, Xty,  XtX_inv,
+                             b_tau, mu, dys,  V,  d2, y, X,
                              A2, A2_lambda, a_sigma,  b_sigma, p,  n);
 			}
 			betacoef_list.col(iter) = betacoef;
