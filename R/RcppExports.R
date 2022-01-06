@@ -82,6 +82,41 @@ sim_logit_reg <- function(n = 100L, p = 20L, q = 5L, X_cor = 0.5, X_var = 10, be
     .Call(`_fastBayesReg_sim_logit_reg`, n, p, q, X_cor, X_var, beta_size)
 }
 
+#'@title Simulate data from the multinomial logistic regression model
+#'@param K number of class
+#'@param n sample size
+#'@param p number of candidate predictors
+#'@param q number of nonzero predictors
+#'@param R2 R-squared indicating the proportion of variation explained by the predictors
+#'@param X_cor correlation between covariates
+#'@param X_var marginal variance of covariates
+#'@param beta_size effect size of beta coefficients
+#'@param intercept_size intercepts
+#'@param intercept0 a vector of (K-1) intercepts
+#'@return a list objects consisting of the following components
+#'\describe{
+#'\item{y}{vector of n outcome variables}
+#'\item{X}{n x p matrix of candidate predictors}
+#'\item{betacoef}{n x (K-1) matrix of regression coeficients}
+#'\item{intercept}{a vector of (K-1) intercept coeficients}
+#'\item{R2}{R-squared indicating the proportion of variation explained by the predictors}
+#'\item{sigma2}{noise variance}
+#'\item{X_cor}{correlation between covariates}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat<-sim_multiclass_reg(K=5,n=1000,p=20,X_var = 10,X_cor=0.5,q=10,beta_size=1,intercept0=c(5,-5,-10,-10))
+#'glmnet_res <- with(dat,wrap_glmnet(y,cbind(1,X),family="multinomial"))
+#'Bayes_res <- with(dat,fast_normal_multiclass(y,cbind(1,X),num_class=length(unique(y)),burnin=5000))
+#'glmnet_pred <- as.numeric(predict(glmnet_res$glmnet_fit,newx = cbind(1,dat$X),type = "class"))
+#'Bayes_pred <- apply(Bayes_res$post_mean$prob,1,which.max)-1
+#'print(c(glmnet_acc = mean(glmnet_pred==dat$y),Bayes_acc = mean(Bayes_pred==dat$y)))
+#'
+#'@export
+sim_multiclass_reg <- function(K = 5L, n = 100L, p = 20L, q = 5L, X_cor = 0.5, X_var = 10, beta_size = 1, intercept_size = 1, intercept0 = NULL) {
+    .Call(`_fastBayesReg_sim_multiclass_reg`, K, n, p, q, X_cor, X_var, beta_size, intercept_size, intercept0)
+}
+
 #'@title Fast Bayesian linear regression with normal priors
 #'@param y vector of n outcome variables
 #'@param X n x p matrix of candidate predictors
@@ -170,6 +205,53 @@ fast_normal_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1
 #'@export
 fast_normal_logit <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, A_tau = 1) {
     .Call(`_fastBayesReg_fast_normal_logit`, y, X, mcmc_sample, burnin, thinning, A_tau)
+}
+
+#'@title Fast Bayesian multinomial logistic regression with normal priors
+#'@param y vector of n multiclass outcome variables taking values 0,...,M-1
+#'@param X n x p matrix of candidate predictors
+#'@param num_class an integer indicating the number of classes
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+#'@return a list object consisting of three components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'\item{mu}{a vector of posterior predictive mean for linear predictor of the n training sample}
+#'\item{prob}{a vector of posterior predictive probability of the n training sample}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{betacoef}{a matrix of MCMC samples for p regression coeficients. Each column is one MCMC sample}
+#'\item{tau2}{a vector of MCMC samples of global shrinkage parameters}
+#'}
+#'\item{elapsed}{running time}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2022)
+#'dat1 <- sim_logit_reg(n=2000,p=200,X_cor=0.9,X_var=10,q=10,beta_size=5)
+#'res1 <- with(dat1,fast_normal_multiclass(y,X))
+#'res1_glmnet <- with(dat1,wrap_glmnet(y,X,alpha=0.5,family=binomial()))
+#'dat2 <- sim_logit_reg(n=200,p=2000,X_cor=0.9,X_var=10,q=10,beta_size=5)
+#'res2 <- with(dat2,fast_normal_multiclass(y,X,burnin=5000))
+#'res2_glmnet <- with(dat2,wrap_glmnet(y,X,alpha=0.5,family=binomial()))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat1$betacoef,res1_glmnet$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2_glmnet$betacoef)),
+#'time=c(res1$elapsed,res1_glmnet$elapsed,res2$elapsed,res2_glmnet$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200 Bayes","n = 2000, p = 200 glmnet",
+#'"n = 200, p = 2000 Bayes","n = 200, p = 2000 glmnet")
+#'normal_logit_tab <- tab
+#'print(normal_logit_tab)
+#'@export
+fast_normal_multiclass <- function(y, X, num_class, mcmc_sample = 500L, burnin = 500L, thinning = 1L, A_tau = 1) {
+    .Call(`_fastBayesReg_fast_normal_multiclass`, y, X, num_class, mcmc_sample, burnin, thinning, A_tau)
 }
 
 #'@title Fast Bayesian logistic regression with horseshoe priors
@@ -436,6 +518,30 @@ predict_fast_lm <- function(model_fit, X_test, alpha = 0.95) {
     .Call(`_fastBayesReg_predict_fast_lm`, model_fit, X_test, alpha)
 }
 
+#'@title Prediction with fast mean field variational Bayesian linear regression fitting
+#'@param model_fit  output list object of fast Bayesian linear regression fitting (see value of \link{fast_horseshoe_lm} as an example)
+#'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
+#'@param alpha posterior predictive credible level \eqn{\alpha \in (0,1)}. The default value is \eqn{0.95}.
+#'@return a list object consisting
+#'\describe{
+#'\item{mean}{a vector of \eqn{n} posterior predictive mean values}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'train_idx = 1:round(length(dat$y)/2)
+#'test_idx = setdiff(1:length(dat$y),train_idx)
+#'res <- fast_mfvb_normal_lm(dat$y[train_idx],dat$X[train_idx,])
+#'pred_res <- predict_fast_mfvb_lm(res,dat$X[test_idx,])
+#'plot(dat$y[test_idx,],pred_res$mean,
+#'type="p",pch=19,cex=0.5,col="blue",asp=1,xlab="Observations",
+#'ylab = "Predictions")
+#'abline(0,1)
+#'@export
+predict_fast_mfvb_lm <- function(model_fit, X_test) {
+    .Call(`_fastBayesReg_predict_fast_mfvb_lm`, model_fit, X_test)
+}
+
 #'@title Prediction with fast Bayesian logistic regression fitting
 #'@param model_fit  output list object of fast Bayesian logistic regression fitting (see value of \link{fast_horseshoe_lm} as an example)
 #'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
@@ -465,6 +571,48 @@ predict_fast_lm <- function(model_fit, X_test, alpha = 0.95) {
 #'@export
 predict_fast_logit <- function(model_fit, X_test, alpha = 0.95, cutoff = 0.5) {
     .Call(`_fastBayesReg_predict_fast_logit`, model_fit, X_test, alpha, cutoff)
+}
+
+#'@title Fast Mean Field Varational Bayesian linear regression with normal priors
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param max_iter max number of iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'\item{trace}{a list object for parameter updates}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2022)
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_mfvb_normal_lm(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_mfvb_normal_lm(y,X))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_normal_tab <- tab
+#'print(fast_normal_tab)
+#'@export
+fast_mfvb_normal_lm <- function(y, X, max_iter = 500L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 1, tol = 1e-5, t_sigma2_eps_0 = 0, t_tau2_0 = 0) {
+    .Call(`_fastBayesReg_fast_mfvb_normal_lm`, y, X, max_iter, a_sigma, b_sigma, A_tau, tol, t_sigma2_eps_0, t_tau2_0)
 }
 
 # Register entry points for exported C++ functions

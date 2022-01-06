@@ -31,12 +31,17 @@ sim_logit_reg_R <- function(n=100, p=10, q = 5, beta_size=1){
 
 #'@export
 #'@importFrom glmnet glmnet
-wrap_glmnet <- function(y,X,alpha=1,intercept=FALSE,...){
+wrap_glmnet <- function(y,X,alpha=1,family="gaussian",intercept=FALSE,...){
 	elapsed <- proc.time()[3]
-	cv_res <- glmnet::cv.glmnet(X,y,alpha=alpha,...)
-	res <- glmnet::glmnet(X,y,alpha=alpha,lambda=cv_res$lambda.1se,...)
+	cv_res <- glmnet::cv.glmnet(X,y,alpha=alpha,family=family,...)
+	res <- glmnet::glmnet(X,y,alpha=alpha,lambda=cv_res$lambda.1se,family=family,...)
+	if(family=="multinomial"){
+		betacoef = sapply(1:length(res$beta),function(i) as.matrix(res$beta[[i]]))
+	} else{
+		betacoef = as.numeric(res$beta)
+	}
 	elapsed <- proc.time()[3] - elapsed
-	return(list(betacoef = as.numeric(res$beta),elapsed=elapsed,glmnet_fit=res))
+	return(list(betacoef = betacoef,elapsed=elapsed,glmnet_fit=res))
 }
 
 
