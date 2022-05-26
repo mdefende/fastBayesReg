@@ -107,8 +107,36 @@ comp_sparse_SSE <- function(truebeta,estbeta){
 	return(c(overall=overall,nonzero=nonzero,zero=zero))
 }
 
+#'Training test data split
+#'@param n an integer number indicating the sample size of the whole dataset.
+#'@param train_prop a number between 0 and 1 indicating the proportion of the training data
+#'@param num_split an integer indicating the number of splits to generate
+#'@return a list of objects including the training and test indices.
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'one_split <- train_test_splits(100,num_split=1)
+#'multiple_splits <- train_test_splits(100,num_split=20)
+#'@export
+train_test_splits <- function(n,train_prop=0.8,num_split = 1){
+	idx <- 1:n
+	if(train_prop<=0 | train_prop >= 1){
+		stop("Proportion of training data must be between 0 and 1")
+	}
+	n_train <- round(train_prop*n)
+	splits <- list()
+	for (i in 1:num_split){
+		splits[[i]] <- list()
+		splits[[i]]$train_idx <- sample(idx,n_train)
+		splits[[i]]$test_idx <- setdiff(idx,splits[[i]]$train_idx)
+	}
+	if(num_split==1){
+		splits <- splits[[1]]
+	}
+	return(splits)
+}
+
 #'Evaluate classification accuracy
-#'@param pred a vector of predicted class indicators, taking two distict values, e.g. 0,1
+#'@param pred a vector of predicted class indicators, taking two distinct values, e.g. 0,1
 #'@param obs a vector of observed class indicators, taking two distict values, e.g. 0,1
 #'@param levels indicator class values, default c(1,0)
 #'@return a vector of five elements TPR, FPR, FDR, ACC, BA

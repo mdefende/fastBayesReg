@@ -172,6 +172,27 @@ namespace fastBayesReg {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
+    inline Rcpp::List fast_normal_logit_single_gibbs(arma::vec& y, arma::mat& X, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double A_tau = 1) {
+        typedef SEXP(*Ptr_fast_normal_logit_single_gibbs)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_fast_normal_logit_single_gibbs p_fast_normal_logit_single_gibbs = NULL;
+        if (p_fast_normal_logit_single_gibbs == NULL) {
+            validateSignature("Rcpp::List(*fast_normal_logit_single_gibbs)(arma::vec&,arma::mat&,int,int,int,double)");
+            p_fast_normal_logit_single_gibbs = (Ptr_fast_normal_logit_single_gibbs)R_GetCCallable("fastBayesReg", "_fastBayesReg_fast_normal_logit_single_gibbs");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_fast_normal_logit_single_gibbs(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(mcmc_sample)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thinning)), Shield<SEXP>(Rcpp::wrap(A_tau)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
     inline Rcpp::List fast_normal_multiclass(arma::vec& y, arma::mat& X, int num_class, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double A_tau = 1) {
         typedef SEXP(*Ptr_fast_normal_multiclass)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_fast_normal_multiclass p_fast_normal_multiclass = NULL;
@@ -183,6 +204,48 @@ namespace fastBayesReg {
         {
             RNGScope RCPP_rngScope_gen;
             rcpp_result_gen = p_fast_normal_multiclass(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(num_class)), Shield<SEXP>(Rcpp::wrap(mcmc_sample)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thinning)), Shield<SEXP>(Rcpp::wrap(A_tau)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List fast_mfvb_normal_logit(arma::vec& y, arma::mat& X, int max_iter = 5000, double tol = 1e-05, double A = 10, double in_E_inv_tau_sq = 1, Rcpp::Nullable<Rcpp::NumericVector> in_E_omega = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> in_E_beta = R_NilValue) {
+        typedef SEXP(*Ptr_fast_mfvb_normal_logit)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_fast_mfvb_normal_logit p_fast_mfvb_normal_logit = NULL;
+        if (p_fast_mfvb_normal_logit == NULL) {
+            validateSignature("Rcpp::List(*fast_mfvb_normal_logit)(arma::vec&,arma::mat&,int,double,double,double,Rcpp::Nullable<Rcpp::NumericVector>,Rcpp::Nullable<Rcpp::NumericVector>)");
+            p_fast_mfvb_normal_logit = (Ptr_fast_mfvb_normal_logit)R_GetCCallable("fastBayesReg", "_fastBayesReg_fast_mfvb_normal_logit");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_fast_mfvb_normal_logit(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(max_iter)), Shield<SEXP>(Rcpp::wrap(tol)), Shield<SEXP>(Rcpp::wrap(A)), Shield<SEXP>(Rcpp::wrap(in_E_inv_tau_sq)), Shield<SEXP>(Rcpp::wrap(in_E_omega)), Shield<SEXP>(Rcpp::wrap(in_E_beta)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List fast_mfvb_multiclass(arma::vec& y, arma::mat& X, int num_class, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double A_tau = 1) {
+        typedef SEXP(*Ptr_fast_mfvb_multiclass)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_fast_mfvb_multiclass p_fast_mfvb_multiclass = NULL;
+        if (p_fast_mfvb_multiclass == NULL) {
+            validateSignature("Rcpp::List(*fast_mfvb_multiclass)(arma::vec&,arma::mat&,int,int,int,int,double)");
+            p_fast_mfvb_multiclass = (Ptr_fast_mfvb_multiclass)R_GetCCallable("fastBayesReg", "_fastBayesReg_fast_mfvb_multiclass");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_fast_mfvb_multiclass(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(num_class)), Shield<SEXP>(Rcpp::wrap(mcmc_sample)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thinning)), Shield<SEXP>(Rcpp::wrap(A_tau)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();
@@ -393,6 +456,27 @@ namespace fastBayesReg {
         {
             RNGScope RCPP_rngScope_gen;
             rcpp_result_gen = p_predict_fast_logit(Shield<SEXP>(Rcpp::wrap(model_fit)), Shield<SEXP>(Rcpp::wrap(X_test)), Shield<SEXP>(Rcpp::wrap(alpha)), Shield<SEXP>(Rcpp::wrap(cutoff)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List predict_fast_mfvb_logit(Rcpp::List& model_fit, arma::mat& X_test, double alpha = 0.95, double cutoff = 0.5) {
+        typedef SEXP(*Ptr_predict_fast_mfvb_logit)(SEXP,SEXP,SEXP,SEXP);
+        static Ptr_predict_fast_mfvb_logit p_predict_fast_mfvb_logit = NULL;
+        if (p_predict_fast_mfvb_logit == NULL) {
+            validateSignature("Rcpp::List(*predict_fast_mfvb_logit)(Rcpp::List&,arma::mat&,double,double)");
+            p_predict_fast_mfvb_logit = (Ptr_predict_fast_mfvb_logit)R_GetCCallable("fastBayesReg", "_fastBayesReg_predict_fast_mfvb_logit");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_predict_fast_mfvb_logit(Shield<SEXP>(Rcpp::wrap(model_fit)), Shield<SEXP>(Rcpp::wrap(X_test)), Shield<SEXP>(Rcpp::wrap(alpha)), Shield<SEXP>(Rcpp::wrap(cutoff)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

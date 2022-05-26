@@ -7,7 +7,7 @@
 comp_class_acc(pred, obs, levels = c(1, 0))
 }
 \arguments{
-\item{pred}{a vector of predicted class indicators, taking two distict values, e.g. 0,1}
+\item{pred}{a vector of predicted class indicators, taking two distinct values, e.g. 0,1}
 
 \item{obs}{a vector of observed class indicators, taking two distict values, e.g. 0,1}
 

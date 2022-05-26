@@ -33,18 +33,18 @@ fast_mfvb_normal_lm(
 a list object consisting of two components
 \describe{
 \item{post_mean}{a list object of four components for posterior mean statistics}
-\describe{
-\item{mu}{a vector of posterior predictive mean of the n training sample}
-\item{betacoef}{a vector of posterior mean of p regression coeficients}
-\item{sigma2_eps}{posterior mean of the noise variance}
-\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+\itemize{
+\item{mu: a vector of posterior predictive mean of the n training sample}
+\item{betacoef: a vector of posterior mean of p regression coeficients}
+\item{sigma2_eps: posterior mean of the noise variance}
+\item{tau2: posterior mean of the ratio between prior regression coefficient variances and the noise variance}
 }
 \item{trace}{a list object for parameter updates}
-\describe{
-\item{mu}{a vector of posterior predictive mean of the n training sample}
-\item{betacoef}{a vector of posterior mean of p regression coeficients}
-\item{sigma2_eps}{posterior mean of the noise variance}
-\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+\itemize{
+\item{t_E2: posterior mean of residual squared}
+\item{t_B2: posterior mean of L2 norm of the regression coeficients}
+\item{t_tau2: posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+\item{t_sigma2_eps: posterior mean of the noise variance}
 }
 }
 }
