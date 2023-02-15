@@ -82,6 +82,40 @@ RcppExport SEXP _fastBayesReg_log1pexp(SEXP xSEXP) {
     UNPROTECT(1);
     return rcpp_result_gen;
 }
+// log1pexp_mat
+arma::mat log1pexp_mat(arma::mat& x);
+static SEXP _fastBayesReg_log1pexp_mat_try(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(log1pexp_mat(x));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_log1pexp_mat(SEXP xSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_log1pexp_mat_try(xSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
 // sim_linear_reg
 Rcpp::List sim_linear_reg(int n, int p, int q, double R2, double X_cor, double beta_size);
 static SEXP _fastBayesReg_sim_linear_reg_try(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, SEXP R2SEXP, SEXP X_corSEXP, SEXP beta_sizeSEXP) {
@@ -122,8 +156,8 @@ RcppExport SEXP _fastBayesReg_sim_linear_reg(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP,
     return rcpp_result_gen;
 }
 // sim_logit_reg
-Rcpp::List sim_logit_reg(int n, int p, int q, double X_cor, double X_var, double beta_size);
-static SEXP _fastBayesReg_sim_logit_reg_try(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, SEXP X_corSEXP, SEXP X_varSEXP, SEXP beta_sizeSEXP) {
+Rcpp::List sim_logit_reg(int n, int p, int q, double X_cor, double X_var, double beta_size, double density);
+static SEXP _fastBayesReg_sim_logit_reg_try(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, SEXP X_corSEXP, SEXP X_varSEXP, SEXP beta_sizeSEXP, SEXP densitySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
@@ -132,15 +166,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type X_cor(X_corSEXP);
     Rcpp::traits::input_parameter< double >::type X_var(X_varSEXP);
     Rcpp::traits::input_parameter< double >::type beta_size(beta_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(sim_logit_reg(n, p, q, X_cor, X_var, beta_size));
+    Rcpp::traits::input_parameter< double >::type density(densitySEXP);
+    rcpp_result_gen = Rcpp::wrap(sim_logit_reg(n, p, q, X_cor, X_var, beta_size, density));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _fastBayesReg_sim_logit_reg(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, SEXP X_corSEXP, SEXP X_varSEXP, SEXP beta_sizeSEXP) {
+RcppExport SEXP _fastBayesReg_sim_logit_reg(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, SEXP X_corSEXP, SEXP X_varSEXP, SEXP beta_sizeSEXP, SEXP densitySEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_fastBayesReg_sim_logit_reg_try(nSEXP, pSEXP, qSEXP, X_corSEXP, X_varSEXP, beta_sizeSEXP));
+        rcpp_result_gen = PROTECT(_fastBayesReg_sim_logit_reg_try(nSEXP, pSEXP, qSEXP, X_corSEXP, X_varSEXP, beta_sizeSEXP, densitySEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -283,8 +318,8 @@ RcppExport SEXP _fastBayesReg_fast_normal_logit(SEXP ySEXP, SEXP XSEXP, SEXP mcm
     return rcpp_result_gen;
 }
 // fast_normal_logit_single_gibbs
-Rcpp::List fast_normal_logit_single_gibbs(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double A_tau);
-static SEXP _fastBayesReg_fast_normal_logit_single_gibbs_try(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP) {
+Rcpp::List fast_normal_logit_single_gibbs(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double A_tau, int verbose);
+static SEXP _fastBayesReg_fast_normal_logit_single_gibbs_try(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
@@ -293,15 +328,137 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
     Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
-    rcpp_result_gen = Rcpp::wrap(fast_normal_logit_single_gibbs(y, X, mcmc_sample, burnin, thinning, A_tau));
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_normal_logit_single_gibbs(y, X, mcmc_sample, burnin, thinning, A_tau, verbose));
     return rcpp_result_gen;
 END_RCPP_RETURN_ERROR
 }
-RcppExport SEXP _fastBayesReg_fast_normal_logit_single_gibbs(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP) {
+RcppExport SEXP _fastBayesReg_fast_normal_logit_single_gibbs(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
     SEXP rcpp_result_gen;
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
-        rcpp_result_gen = PROTECT(_fastBayesReg_fast_normal_logit_single_gibbs_try(ySEXP, XSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP));
+        rcpp_result_gen = PROTECT(_fastBayesReg_fast_normal_logit_single_gibbs_try(ySEXP, XSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP, verboseSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// scalable_normal_logit_single_gibbs
+Rcpp::List scalable_normal_logit_single_gibbs(arma::vec& y, SEXP bigX, arma::uvec& rowidx, int mcmc_sample, int burnin, int thinning, double A_tau, int verbose);
+static SEXP _fastBayesReg_scalable_normal_logit_single_gibbs_try(SEXP ySEXP, SEXP bigXSEXP, SEXP rowidxSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type bigX(bigXSEXP);
+    Rcpp::traits::input_parameter< arma::uvec& >::type rowidx(rowidxSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(scalable_normal_logit_single_gibbs(y, bigX, rowidx, mcmc_sample, burnin, thinning, A_tau, verbose));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_scalable_normal_logit_single_gibbs(SEXP ySEXP, SEXP bigXSEXP, SEXP rowidxSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_scalable_normal_logit_single_gibbs_try(ySEXP, bigXSEXP, rowidxSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP, verboseSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// big_normal_logit_single_gibbs
+Rcpp::List big_normal_logit_single_gibbs(arma::vec& y, SEXP bigX, int mcmc_sample, int burnin, int thinning, double A_tau, int verbose);
+static SEXP _fastBayesReg_big_normal_logit_single_gibbs_try(SEXP ySEXP, SEXP bigXSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< SEXP >::type bigX(bigXSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(big_normal_logit_single_gibbs(y, bigX, mcmc_sample, burnin, thinning, A_tau, verbose));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_big_normal_logit_single_gibbs(SEXP ySEXP, SEXP bigXSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_big_normal_logit_single_gibbs_try(ySEXP, bigXSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP, verboseSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// sparse_normal_logit_single_gibbs
+Rcpp::List sparse_normal_logit_single_gibbs(arma::vec& y, arma::sp_mat& X, int mcmc_sample, int burnin, int thinning, double A_tau, int verbose);
+static SEXP _fastBayesReg_sparse_normal_logit_single_gibbs_try(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::sp_mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(sparse_normal_logit_single_gibbs(y, X, mcmc_sample, burnin, thinning, A_tau, verbose));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_sparse_normal_logit_single_gibbs(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_sparse_normal_logit_single_gibbs_try(ySEXP, XSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP, verboseSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -361,6 +518,88 @@ RcppExport SEXP _fastBayesReg_fast_normal_multiclass(SEXP ySEXP, SEXP XSEXP, SEX
     UNPROTECT(1);
     return rcpp_result_gen;
 }
+// fast_normal_multiclass_single_gibbs
+Rcpp::List fast_normal_multiclass_single_gibbs(arma::vec& y, arma::mat& X, int num_class, int mcmc_sample, int burnin, int thinning, double A_tau, int verbose);
+static SEXP _fastBayesReg_fast_normal_multiclass_single_gibbs_try(SEXP ySEXP, SEXP XSEXP, SEXP num_classSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type num_class(num_classSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_normal_multiclass_single_gibbs(y, X, num_class, mcmc_sample, burnin, thinning, A_tau, verbose));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_fast_normal_multiclass_single_gibbs(SEXP ySEXP, SEXP XSEXP, SEXP num_classSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_fast_normal_multiclass_single_gibbs_try(ySEXP, XSEXP, num_classSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP, verboseSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// scalable_normal_multiclass_single_gibbs
+Rcpp::List scalable_normal_multiclass_single_gibbs(arma::vec& y, arma::mat& X, int num_class, int mcmc_sample, int burnin, int thinning, double A_tau, int verbose);
+static SEXP _fastBayesReg_scalable_normal_multiclass_single_gibbs_try(SEXP ySEXP, SEXP XSEXP, SEXP num_classSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type num_class(num_classSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< int >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(scalable_normal_multiclass_single_gibbs(y, X, num_class, mcmc_sample, burnin, thinning, A_tau, verbose));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_scalable_normal_multiclass_single_gibbs(SEXP ySEXP, SEXP XSEXP, SEXP num_classSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP A_tauSEXP, SEXP verboseSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_scalable_normal_multiclass_single_gibbs_try(ySEXP, XSEXP, num_classSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, A_tauSEXP, verboseSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
 // fast_mfvb_normal_logit
 Rcpp::List fast_mfvb_normal_logit(arma::vec& y, arma::mat& X, int max_iter, double tol, double A, double in_E_inv_tau_sq, Rcpp::Nullable<Rcpp::NumericVector> in_E_omega, Rcpp::Nullable<Rcpp::NumericVector> in_E_beta);
 static SEXP _fastBayesReg_fast_mfvb_normal_logit_try(SEXP ySEXP, SEXP XSEXP, SEXP max_iterSEXP, SEXP tolSEXP, SEXP ASEXP, SEXP in_E_inv_tau_sqSEXP, SEXP in_E_omegaSEXP, SEXP in_E_betaSEXP) {
@@ -383,6 +622,47 @@ RcppExport SEXP _fastBayesReg_fast_mfvb_normal_logit(SEXP ySEXP, SEXP XSEXP, SEX
     {
         Rcpp::RNGScope rcpp_rngScope_gen;
         rcpp_result_gen = PROTECT(_fastBayesReg_fast_mfvb_normal_logit_try(ySEXP, XSEXP, max_iterSEXP, tolSEXP, ASEXP, in_E_inv_tau_sqSEXP, in_E_omegaSEXP, in_E_betaSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// fast_mfvb_normal_logit_single
+Rcpp::List fast_mfvb_normal_logit_single(arma::vec& y, arma::mat& X, int max_iter, double tol, double A, double in_E_inv_tau_sq, Rcpp::Nullable<Rcpp::NumericVector> in_E_omega, Rcpp::Nullable<Rcpp::NumericVector> in_E_beta);
+static SEXP _fastBayesReg_fast_mfvb_normal_logit_single_try(SEXP ySEXP, SEXP XSEXP, SEXP max_iterSEXP, SEXP tolSEXP, SEXP ASEXP, SEXP in_E_inv_tau_sqSEXP, SEXP in_E_omegaSEXP, SEXP in_E_betaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< double >::type A(ASEXP);
+    Rcpp::traits::input_parameter< double >::type in_E_inv_tau_sq(in_E_inv_tau_sqSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type in_E_omega(in_E_omegaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type in_E_beta(in_E_betaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_mfvb_normal_logit_single(y, X, max_iter, tol, A, in_E_inv_tau_sq, in_E_omega, in_E_beta));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_fast_mfvb_normal_logit_single(SEXP ySEXP, SEXP XSEXP, SEXP max_iterSEXP, SEXP tolSEXP, SEXP ASEXP, SEXP in_E_inv_tau_sqSEXP, SEXP in_E_omegaSEXP, SEXP in_E_betaSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_fast_mfvb_normal_logit_single_try(ySEXP, XSEXP, max_iterSEXP, tolSEXP, ASEXP, in_E_inv_tau_sqSEXP, in_E_omegaSEXP, in_E_betaSEXP));
     }
     Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
     if (rcpp_isInterrupt_gen) {
@@ -828,6 +1108,41 @@ RcppExport SEXP _fastBayesReg_predict_fast_logit(SEXP model_fitSEXP, SEXP X_test
     UNPROTECT(1);
     return rcpp_result_gen;
 }
+// predict_fast_multiclass
+Rcpp::List predict_fast_multiclass(Rcpp::List& model_fit, arma::mat& X_test);
+static SEXP _fastBayesReg_predict_fast_multiclass_try(SEXP model_fitSEXP, SEXP X_testSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::List& >::type model_fit(model_fitSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X_test(X_testSEXP);
+    rcpp_result_gen = Rcpp::wrap(predict_fast_multiclass(model_fit, X_test));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_predict_fast_multiclass(SEXP model_fitSEXP, SEXP X_testSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_predict_fast_multiclass_try(model_fitSEXP, X_testSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error(CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
 // predict_fast_mfvb_logit
 Rcpp::List predict_fast_mfvb_logit(Rcpp::List& model_fit, arma::mat& X_test, double alpha, double cutoff);
 static SEXP _fastBayesReg_predict_fast_mfvb_logit_try(SEXP model_fitSEXP, SEXP X_testSEXP, SEXP alphaSEXP, SEXP cutoffSEXP) {
@@ -914,14 +1229,21 @@ static int _fastBayesReg_RcppExport_validate(const char* sig) {
     if (signatures.empty()) {
         signatures.insert("arma::vec(*log1mexpm)(arma::vec&)");
         signatures.insert("arma::vec(*log1pexp)(arma::vec&)");
+        signatures.insert("arma::mat(*log1pexp_mat)(arma::mat&)");
         signatures.insert("Rcpp::List(*sim_linear_reg)(int,int,int,double,double,double)");
-        signatures.insert("Rcpp::List(*sim_logit_reg)(int,int,int,double,double,double)");
+        signatures.insert("Rcpp::List(*sim_logit_reg)(int,int,int,double,double,double,double)");
         signatures.insert("Rcpp::List(*sim_multiclass_reg)(int,int,int,int,double,double,double,double,Rcpp::Nullable<Rcpp::NumericMatrix>)");
         signatures.insert("Rcpp::List(*fast_normal_lm)(arma::vec&,arma::mat&,int,int,int,double,double,double)");
         signatures.insert("Rcpp::List(*fast_normal_logit)(arma::vec&,arma::mat&,int,int,int,double)");
-        signatures.insert("Rcpp::List(*fast_normal_logit_single_gibbs)(arma::vec&,arma::mat&,int,int,int,double)");
+        signatures.insert("Rcpp::List(*fast_normal_logit_single_gibbs)(arma::vec&,arma::mat&,int,int,int,double,int)");
+        signatures.insert("Rcpp::List(*scalable_normal_logit_single_gibbs)(arma::vec&,SEXP,arma::uvec&,int,int,int,double,int)");
+        signatures.insert("Rcpp::List(*big_normal_logit_single_gibbs)(arma::vec&,SEXP,int,int,int,double,int)");
+        signatures.insert("Rcpp::List(*sparse_normal_logit_single_gibbs)(arma::vec&,arma::sp_mat&,int,int,int,double,int)");
         signatures.insert("Rcpp::List(*fast_normal_multiclass)(arma::vec&,arma::mat&,int,int,int,int,double)");
+        signatures.insert("Rcpp::List(*fast_normal_multiclass_single_gibbs)(arma::vec&,arma::mat&,int,int,int,int,double,int)");
+        signatures.insert("Rcpp::List(*scalable_normal_multiclass_single_gibbs)(arma::vec&,arma::mat&,int,int,int,int,double,int)");
         signatures.insert("Rcpp::List(*fast_mfvb_normal_logit)(arma::vec&,arma::mat&,int,double,double,double,Rcpp::Nullable<Rcpp::NumericVector>,Rcpp::Nullable<Rcpp::NumericVector>)");
+        signatures.insert("Rcpp::List(*fast_mfvb_normal_logit_single)(arma::vec&,arma::mat&,int,double,double,double,Rcpp::Nullable<Rcpp::NumericVector>,Rcpp::Nullable<Rcpp::NumericVector>)");
         signatures.insert("Rcpp::List(*fast_mfvb_multiclass)(arma::vec&,arma::mat&,int,int,int,int,double)");
         signatures.insert("Rcpp::List(*fast_horseshoe_logit)(arma::vec&,arma::mat&,int,int,int,double,double)");
         signatures.insert("arma::vec(*rand_left_trucnorm0)(int,double,double)");
@@ -933,6 +1255,7 @@ static int _fastBayesReg_RcppExport_validate(const char* sig) {
         signatures.insert("Rcpp::List(*predict_fast_lm)(Rcpp::List&,arma::mat&,double)");
         signatures.insert("Rcpp::List(*predict_fast_mfvb_lm)(Rcpp::List&,arma::mat&)");
         signatures.insert("Rcpp::List(*predict_fast_logit)(Rcpp::List&,arma::mat&,double,double)");
+        signatures.insert("Rcpp::List(*predict_fast_multiclass)(Rcpp::List&,arma::mat&)");
         signatures.insert("Rcpp::List(*predict_fast_mfvb_logit)(Rcpp::List&,arma::mat&,double,double)");
         signatures.insert("Rcpp::List(*fast_mfvb_normal_lm)(arma::vec&,arma::mat&,int,double,double,double,double,double,double)");
     }
@@ -943,14 +1266,21 @@ static int _fastBayesReg_RcppExport_validate(const char* sig) {
 RcppExport SEXP _fastBayesReg_RcppExport_registerCCallable() { 
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_log1mexpm", (DL_FUNC)_fastBayesReg_log1mexpm_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_log1pexp", (DL_FUNC)_fastBayesReg_log1pexp_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_log1pexp_mat", (DL_FUNC)_fastBayesReg_log1pexp_mat_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_sim_linear_reg", (DL_FUNC)_fastBayesReg_sim_linear_reg_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_sim_logit_reg", (DL_FUNC)_fastBayesReg_sim_logit_reg_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_sim_multiclass_reg", (DL_FUNC)_fastBayesReg_sim_multiclass_reg_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_lm", (DL_FUNC)_fastBayesReg_fast_normal_lm_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_logit", (DL_FUNC)_fastBayesReg_fast_normal_logit_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_logit_single_gibbs", (DL_FUNC)_fastBayesReg_fast_normal_logit_single_gibbs_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_scalable_normal_logit_single_gibbs", (DL_FUNC)_fastBayesReg_scalable_normal_logit_single_gibbs_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_big_normal_logit_single_gibbs", (DL_FUNC)_fastBayesReg_big_normal_logit_single_gibbs_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_sparse_normal_logit_single_gibbs", (DL_FUNC)_fastBayesReg_sparse_normal_logit_single_gibbs_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_multiclass", (DL_FUNC)_fastBayesReg_fast_normal_multiclass_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_multiclass_single_gibbs", (DL_FUNC)_fastBayesReg_fast_normal_multiclass_single_gibbs_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_scalable_normal_multiclass_single_gibbs", (DL_FUNC)_fastBayesReg_scalable_normal_multiclass_single_gibbs_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_mfvb_normal_logit", (DL_FUNC)_fastBayesReg_fast_mfvb_normal_logit_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_mfvb_normal_logit_single", (DL_FUNC)_fastBayesReg_fast_mfvb_normal_logit_single_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_mfvb_multiclass", (DL_FUNC)_fastBayesReg_fast_mfvb_multiclass_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_horseshoe_logit", (DL_FUNC)_fastBayesReg_fast_horseshoe_logit_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_rand_left_trucnorm0", (DL_FUNC)_fastBayesReg_rand_left_trucnorm0_try);
@@ -962,6 +1292,7 @@ RcppExport SEXP _fastBayesReg_RcppExport_registerCCallable() {
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_predict_fast_lm", (DL_FUNC)_fastBayesReg_predict_fast_lm_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_predict_fast_mfvb_lm", (DL_FUNC)_fastBayesReg_predict_fast_mfvb_lm_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_predict_fast_logit", (DL_FUNC)_fastBayesReg_predict_fast_logit_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_predict_fast_multiclass", (DL_FUNC)_fastBayesReg_predict_fast_multiclass_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_predict_fast_mfvb_logit", (DL_FUNC)_fastBayesReg_predict_fast_mfvb_logit_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_mfvb_normal_lm", (DL_FUNC)_fastBayesReg_fast_mfvb_normal_lm_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_RcppExport_validate", (DL_FUNC)_fastBayesReg_RcppExport_validate);
@@ -971,14 +1302,21 @@ RcppExport SEXP _fastBayesReg_RcppExport_registerCCallable() {
 static const R_CallMethodDef CallEntries[] = {
     {"_fastBayesReg_log1mexpm", (DL_FUNC) &_fastBayesReg_log1mexpm, 1},
     {"_fastBayesReg_log1pexp", (DL_FUNC) &_fastBayesReg_log1pexp, 1},
+    {"_fastBayesReg_log1pexp_mat", (DL_FUNC) &_fastBayesReg_log1pexp_mat, 1},
     {"_fastBayesReg_sim_linear_reg", (DL_FUNC) &_fastBayesReg_sim_linear_reg, 6},
-    {"_fastBayesReg_sim_logit_reg", (DL_FUNC) &_fastBayesReg_sim_logit_reg, 6},
+    {"_fastBayesReg_sim_logit_reg", (DL_FUNC) &_fastBayesReg_sim_logit_reg, 7},
     {"_fastBayesReg_sim_multiclass_reg", (DL_FUNC) &_fastBayesReg_sim_multiclass_reg, 9},
     {"_fastBayesReg_fast_normal_lm", (DL_FUNC) &_fastBayesReg_fast_normal_lm, 8},
     {"_fastBayesReg_fast_normal_logit", (DL_FUNC) &_fastBayesReg_fast_normal_logit, 6},
-    {"_fastBayesReg_fast_normal_logit_single_gibbs", (DL_FUNC) &_fastBayesReg_fast_normal_logit_single_gibbs, 6},
+    {"_fastBayesReg_fast_normal_logit_single_gibbs", (DL_FUNC) &_fastBayesReg_fast_normal_logit_single_gibbs, 7},
+    {"_fastBayesReg_scalable_normal_logit_single_gibbs", (DL_FUNC) &_fastBayesReg_scalable_normal_logit_single_gibbs, 8},
+    {"_fastBayesReg_big_normal_logit_single_gibbs", (DL_FUNC) &_fastBayesReg_big_normal_logit_single_gibbs, 7},
+    {"_fastBayesReg_sparse_normal_logit_single_gibbs", (DL_FUNC) &_fastBayesReg_sparse_normal_logit_single_gibbs, 7},
     {"_fastBayesReg_fast_normal_multiclass", (DL_FUNC) &_fastBayesReg_fast_normal_multiclass, 7},
+    {"_fastBayesReg_fast_normal_multiclass_single_gibbs", (DL_FUNC) &_fastBayesReg_fast_normal_multiclass_single_gibbs, 8},
+    {"_fastBayesReg_scalable_normal_multiclass_single_gibbs", (DL_FUNC) &_fastBayesReg_scalable_normal_multiclass_single_gibbs, 8},
     {"_fastBayesReg_fast_mfvb_normal_logit", (DL_FUNC) &_fastBayesReg_fast_mfvb_normal_logit, 8},
+    {"_fastBayesReg_fast_mfvb_normal_logit_single", (DL_FUNC) &_fastBayesReg_fast_mfvb_normal_logit_single, 8},
     {"_fastBayesReg_fast_mfvb_multiclass", (DL_FUNC) &_fastBayesReg_fast_mfvb_multiclass, 7},
     {"_fastBayesReg_fast_horseshoe_logit", (DL_FUNC) &_fastBayesReg_fast_horseshoe_logit, 7},
     {"_fastBayesReg_rand_left_trucnorm0", (DL_FUNC) &_fastBayesReg_rand_left_trucnorm0, 3},
@@ -990,6 +1328,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastBayesReg_predict_fast_lm", (DL_FUNC) &_fastBayesReg_predict_fast_lm, 3},
     {"_fastBayesReg_predict_fast_mfvb_lm", (DL_FUNC) &_fastBayesReg_predict_fast_mfvb_lm, 2},
     {"_fastBayesReg_predict_fast_logit", (DL_FUNC) &_fastBayesReg_predict_fast_logit, 4},
+    {"_fastBayesReg_predict_fast_multiclass", (DL_FUNC) &_fastBayesReg_predict_fast_multiclass, 2},
     {"_fastBayesReg_predict_fast_mfvb_logit", (DL_FUNC) &_fastBayesReg_predict_fast_mfvb_logit, 4},
     {"_fastBayesReg_fast_mfvb_normal_lm", (DL_FUNC) &_fastBayesReg_fast_mfvb_normal_lm, 9},
     {"_fastBayesReg_RcppExport_registerCCallable", (DL_FUNC) &_fastBayesReg_RcppExport_registerCCallable, 0},

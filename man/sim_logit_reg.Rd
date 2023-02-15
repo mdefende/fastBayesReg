@@ -10,7 +10,8 @@ sim_logit_reg(
   q = 5L,
   X_cor = 0.5,
   X_var = 10,
-  beta_size = 1
+  beta_size = 1,
+  density = 1
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ sim_logit_reg(
 \item{X_cor}{correlation between covariates}
 
 \item{beta_size}{effect size of beta coefficients}
+
+\item{density}{specifies the percentage of non-zero elements. The default value is 1.0 in which case
+X is a dense matrix. When the density is strictly less than 1.0 in which case X is a spare matrix.}
 
 \item{R2}{R-squared indicating the proportion of variation explained by the predictors}
 }

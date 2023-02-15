@@ -8,8 +8,8 @@ Description: This package implements posterior computaiton algorithms for a wide
 License: GPL
 Encoding: UTF-8
 LazyData: true
-Imports: Rcpp (>= 1.0.7), glmnet, horseshoe, pgdraw
+Imports: Rcpp (>= 1.0.7), glmnet, horseshoe, pgdraw, BH, bigmemory
 Includes: Rcpp
-LinkingTo: Rcpp, RcppArmadillo
-Depends: Rcpp (>= 1.0.7), RcppArmadillo, glmnet, horseshoe, pgdraw
-RoxygenNote: 7.1.2
+LinkingTo: Rcpp, RcppArmadillo, BH, bigmemory
+Depends: Rcpp (>= 1.0.7), RcppArmadillo, glmnet, horseshoe, pgdraw, BH, bigmemory
+RoxygenNote: 7.2.1
