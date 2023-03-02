@@ -3627,9 +3627,6 @@ Rcpp::List fast_mfvb_normal_lm(arma::vec& y, arma::mat& X,
 
 	arma::vec betacoef;
 
-//	if(t_sigma2_eps_0<=0){
-//		t_sigma2_eps_0 = a_sigma/b_sigma;
-//	}
 	if(t_tau2_0<=0){
 		t_tau2_0 = A2_tau;
 	}
