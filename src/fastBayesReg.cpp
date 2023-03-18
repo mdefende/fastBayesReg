@@ -1733,7 +1733,7 @@ Rcpp::List scalable_normal_multiclass_single_gibbs(arma::vec& y, arma::mat& X, i
 //'@examples
 //'set.seed(2022)
 //'dat1 <- sim_logit_reg(n=2000,p=20,X_cor=0.5,X_var=1,q=10,beta_size=5)
-//'split <- train_test_splits(dat1$n)
+//'split <- train_test_splits(nrow(dat1$X))
 //'dat1$train_idx <- split$train_idx
 //'dat1$test_idx <- split$test_idx
 //'res1 <- with(dat1,fast_mfvb_normal_logit(y[train_idx],X[train_idx,]))
