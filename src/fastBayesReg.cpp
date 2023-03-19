@@ -1739,18 +1739,29 @@ Rcpp::List scalable_normal_multiclass_single_gibbs(arma::vec& y, arma::mat& X, i
 //'res1 <- with(dat1,fast_mfvb_normal_logit(y[train_idx],X[train_idx,]))
 //'res1_mcmc <- with(dat1,fast_normal_logit(y[train_idx],X[train_idx,]))
 //'res1_glmnet <- with(dat1,wrap_glmnet(y[train_idx],X[train_idx,],alpha=0.5,family=binomial()))
-//'
-//'
-//'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+//'dat2 <- sim_logit_reg(n=200,p=400,X_cor=0.5,X_var=2,q=10,beta_size=1)
+//'split <- train_test_splits(nrow(dat2$X))
+//'dat2$train_idx <- split$train_idx
+//'dat2$test_idx <- split$test_idx
+//'res2 <- with(dat2,fast_mfvb_normal_logit(y[train_idx],X[train_idx,]))
+//'res2_mcmc <- with(dat2,fast_normal_logit(y[train_idx],X[train_idx,]))
+//'res2_glmnet <- with(dat1,wrap_glmnet(y[train_idx],X[train_idx,],alpha=0.5,family=binomial()))
+//'tab1 <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
 //'comp_sparse_SSE(dat1$betacoef,res1_glmnet$betacoef),
 //'comp_sparse_SSE(dat1$betacoef,res1_mcmc$post_mean$betacoef)),
 //'time=c(res1$elapsed,res1_glmnet$elapsed,
 //'res1_mcmc$elapsed))
-//'
-//'rownames(tab)<-c("n = 2000, p = 20 MFVB","n = 2000, p = 20 glmnet",
+//'tab2 <- data.frame(rbind(comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2_glmnet$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2_mcmc$post_mean$betacoef)),
+//'time=c(res2$elapsed,res2_glmnet$elapsed,
+//'res2_mcmc$elapsed))
+//'rownames(tab1)<-c("n = 2000, p = 20 MFVB","n = 2000, p = 20 glmnet",
 //'"n = 2000, p = 20 MCMC")
-//'normal_logit_tab <- tab
-//'print(normal_logit_tab)
+//'rownames(tab2)<-c("n = 200, p = 400 MFVB","n = 200, p = 400 glmnet",
+//'"n = 200, p = 400 MCMC")
+//'mfvb_logit_tab <- rbind(tab1,tab2)
+//'print(mfvb_logit_tab)
 //'@export
 // [[Rcpp::export]]
 Rcpp::List fast_mfvb_normal_logit(arma::vec& y, arma::mat& X,

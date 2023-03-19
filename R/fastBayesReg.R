@@ -35,8 +35,13 @@ wrap_glmnet <- function(y,X,alpha=1,family="gaussian",intercept=FALSE,...){
 	elapsed <- proc.time()[3]
 	cv_res <- glmnet::cv.glmnet(X,y,alpha=alpha,family=family,...)
 	res <- glmnet::glmnet(X,y,alpha=alpha,lambda=cv_res$lambda.1se,family=family,...)
-	if(family=="multinomial"){
-		betacoef = sapply(1:length(res$beta),function(i) as.matrix(res$beta[[i]]))
+	if(mode(family)=="character"){
+		if(family=="multinomial"){
+			betacoef = sapply(1:length(res$beta),function(i) as.matrix(res$beta[[i]]))
+		}
+	  else{
+			betacoef = as.numeric(res$beta)
+	  }
 	} else{
 		betacoef = as.numeric(res$beta)
 	}
