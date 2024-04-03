@@ -61,7 +61,7 @@ dat1$test_idx <- split$test_idx
 res1 <- with(dat1,fast_mfvb_normal_logit(y[train_idx],X[train_idx,]))
 res1_mcmc <- with(dat1,fast_normal_logit(y[train_idx],X[train_idx,]))
 res1_glmnet <- with(dat1,wrap_glmnet(y[train_idx],X[train_idx,],alpha=0.5,family=binomial()))
-dat2 <- sim_logit_reg(n=200,p=400,X_cor=0.5,X_var=1,q=10,beta_size=5)
+dat2 <- sim_logit_reg(n=200,p=400,X_cor=0.5,X_var=2,q=10,beta_size=1)
 split <- train_test_splits(nrow(dat2$X))
 dat2$train_idx <- split$train_idx
 dat2$test_idx <- split$test_idx

@@ -63,6 +63,32 @@ sim_linear_reg <- function(n = 100L, p = 20L, q = 5L, R2 = 0.95, X_cor = 0.5, be
     .Call(`_fastBayesReg_sim_linear_reg`, n, p, q, R2, X_cor, beta_size)
 }
 
+#'@title Simulate data from the linear regression model with multiple outcome variables
+#'@param n sample size
+#'@param m number of outcome variables
+#'@param p number of candidate predictors
+#'@param q number of nonzero predictors
+#'@param R2 R-squared indicating the proportion of variation explained by the predictors
+#'@param beta_size effect size of beta coefficients
+#'@param X_cor correlation between covariates
+#'@return a list objects consisting of the following components
+#'\describe{
+#'\item{y}{vector of n outcome variables}
+#'\item{X}{n x p matrix of candidate predictors}
+#'\item{betacoef}{vector of p regression coeficients}
+#'\item{R2}{R-squared indicating the proportion of variation explained by the predictors}
+#'\item{sigma2}{noise variance}
+#'\item{X_cor}{correlation between covariates}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat<-sim_linear_reg_multi(n=2500,p=200,m=5,X_cor=0.9,q=6)
+#'summary(with(dat,lm(y~X)))
+#'@export
+sim_linear_reg_multi <- function(n = 100L, p = 20L, m = 5L, q = 5L, R2 = 0.95, X_cor = 0.5, beta_size = 1) {
+    .Call(`_fastBayesReg_sim_linear_reg_multi`, n, p, m, q, R2, X_cor, beta_size)
+}
+
 #'@title Simulate data from the logistic regression model
 #'@param n sample size
 #'@param p number of candidate predictors
@@ -167,6 +193,50 @@ sim_multiclass_reg <- function(K = 5L, n = 100L, p = 20L, q = 5L, X_cor = 0.5, X
 #'@export
 fast_normal_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 10) {
     .Call(`_fastBayesReg_fast_normal_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau)
+}
+
+#'@title Fast Bayesian linear regression with normal priors with multiple outcome variables
+#'@param y n x q matrix of q outcome variables with n observations
+#'@param X n x p matrix of p candidate predictors with n observations
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a matrix of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a matrix of posterior mean of q x p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{mu}{an array of posterior predictive mean of the n training sample}
+#'\item{betacoef}{an array of posterior mean of p by q regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2024)
+#'dat1 <- sim_linear_reg_multi(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_normal_multi_lm(y,X,mcmc_output=FALSE))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_normal_multi_lm(y,X))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_normal_tab <- tab
+#'print(fast_normal_tab)
+#'@export
+fast_normal_multi_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 10, mcmc_output = TRUE) {
+    .Call(`_fastBayesReg_fast_normal_multi_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, mcmc_output)
 }
 
 #'@title Fast Bayesian logistic regression with normal priors
@@ -553,7 +623,7 @@ scalable_normal_multiclass_single_gibbs <- function(y, X, num_class, mcmc_sample
 #'res1 <- with(dat1,fast_mfvb_normal_logit(y[train_idx],X[train_idx,]))
 #'res1_mcmc <- with(dat1,fast_normal_logit(y[train_idx],X[train_idx,]))
 #'res1_glmnet <- with(dat1,wrap_glmnet(y[train_idx],X[train_idx,],alpha=0.5,family=binomial()))
-#'dat2 <- sim_logit_reg(n=200,p=400,X_cor=0.5,X_var=1,q=10,beta_size=5)
+#'dat2 <- sim_logit_reg(n=200,p=400,X_cor=0.5,X_var=2,q=10,beta_size=1)
 #'split <- train_test_splits(nrow(dat2$X))
 #'dat2$train_idx <- split$train_idx
 #'dat2$test_idx <- split$test_idx
@@ -935,6 +1005,34 @@ predict_fast_lm <- function(model_fit, X_test, alpha = 0.95) {
     .Call(`_fastBayesReg_predict_fast_lm`, model_fit, X_test, alpha)
 }
 
+#'@title Prediction with fast Bayesian linear regression fitting with multiple outcomes
+#'@param model_fit  output list object of fast Bayesian linear regression fitting (see value of \link{fast_horseshoe_lm} as an example)
+#'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
+#'@param alpha posterior predictive credible level \eqn{\alpha \in (0,1)}. The default value is \eqn{0.95}.
+#'@return a list object consisting of three components
+#'\describe{
+#'\item{mean}{a matrix of \eqn{n} by \eqn{q} posterior predictive mean values}
+#'\item{ucl}{a matrix of \eqn{n} by \eqn{q}  posterior \eqn{\alpha} level upper credible limits}
+#'\item{lcl}{a vector of \eqn{n} by \eqn{q}  posterior \eqn{\alpha} level lower credible limits}
+#'\item{median}{a vector of \eqn{n} by \eqn{q}  posterior predictive median values}
+#'\item{sd}{a vector of \eqn{n} by \eqn{q}  posterior predictive standard deviation values}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'dat <- sim_linear_reg_multi(n=2000,p=200,m=5,X_cor=0.9,q=6)
+#'train_idx = 1:round(nrow(dat$y)/2)
+#'test_idx = setdiff(1:nrow(dat$y),train_idx)
+#'res <- fast_normal_multi_lm(dat$y[train_idx,],dat$X[train_idx,])
+#'pred_res <- predict_fast_multi_lm(res,dat$X[test_idx,])
+#'plot(dat$y[test_idx,1],pred_res$mean[,1],
+#'type="p",pch=19,cex=0.5,col="blue",asp=1,xlab="Observations",
+#'ylab = "Predictions")
+#'abline(0,1)
+#'@export
+predict_fast_multi_lm <- function(model_fit, X_test) {
+    .Call(`_fastBayesReg_predict_fast_multi_lm`, model_fit, X_test)
+}
+
 #'@title Prediction with fast mean field variational Bayesian linear regression fitting
 #'@param model_fit  output list object of fast Bayesian linear regression fitting (see value of \link{fast_horseshoe_lm} as an example)
 #'@param X_test \eqn{n} by \eqn{p} matrix of predictors for the test data
@@ -1093,5 +1191,5 @@ fast_mfvb_normal_lm <- function(y, X, max_iter = 500L, a_sigma = 0.01, b_sigma =
 
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
-    .Call('_fastBayesReg_RcppExport_registerCCallable', PACKAGE = 'fastBayesReg')
+    .Call(`_fastBayesReg_RcppExport_registerCCallable`)
 })
