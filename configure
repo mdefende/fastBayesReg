@@ -17,7 +17,7 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 #	if [ "$(hostname | grep "arc-ts.umich.edu")"!="" ]; then
 #     MKLROOT=/sw/arcts/centos7/intel/18.0.5/mkl/
 #	fi
-#   echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
+   echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
 #   echo "PKG_LIBS += -L/usr/lib/x86_64-linux-gnu/blas/ -lblas -L/usr/lib/x86_64-linux-gnu/lapack/ -llapack" > ./src/Makevars
   # if ["$MKLROOT" == ""]; then
   #    echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
@@ -26,13 +26,13 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
   #
   #    PKG_CPPFLAGS +=  -DMKL_ILP64  -m64  -I$MKLROOT/include -l mkl_rt" > ./src/Makevars
   # fi
-  if ["$MKLROOT" == ""]; then
-     echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
-  else
-     echo "PKG_LIBS += -lmkl_intel -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm
-
-     PKG_CPPFLAGS +=  -I$MKL_INC -L$MKL_LINK -l mkl_rt" > ./src/Makevars
-  fi
+  # if ["$MKLROOT" == ""]; then
+  #    echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
+  # else
+  #    echo "PKG_LIBS += -lmkl_intel -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm
+  #
+  #    PKG_CPPFLAGS +=  -I$MKL_INC -L$MKL_LINK -l mkl_rt" > ./src/Makevars
+  # fi
 
    # if ["$OPENBLAS_ROOT" == ""]; then
    #    echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
