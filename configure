@@ -19,20 +19,20 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 #	fi
 #   echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
 #   echo "PKG_LIBS += -L/usr/lib/x86_64-linux-gnu/blas/ -lblas -L/usr/lib/x86_64-linux-gnu/lapack/ -llapack" > ./src/Makevars
-  if ["$MKLROOT" == ""]; then
-     echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
-  else
-     echo "PKG_LIBS += -Wl,--start-group $MKLROOT/lib/intel64/libmkl_intel_ilp64.a $MKLROOT/lib/intel64/libmkl_gnu_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lgomp -lpthread -lm -ldl
-
-     PKG_CPPFLAGS +=  -DMKL_ILP64  -m64  -I$MKLROOT/include -l mkl_rt" > ./src/Makevars
-  fi
   # if ["$MKLROOT" == ""]; then
   #    echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
   # else
-  #    echo "PKG_LIBS += -lmkl_intel -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm
+  #    echo "PKG_LIBS += -Wl,--start-group $MKLROOT/lib/intel64/libmkl_intel_ilp64.a $MKLROOT/lib/intel64/libmkl_gnu_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lgomp -lpthread -lm -ldl
   #
-  #    PKG_CPPFLAGS +=  -I$MKL_INC -L$MKL_LINK -l mkl_rt" > ./src/Makevars
+  #    PKG_CPPFLAGS +=  -DMKL_ILP64  -m64  -I$MKLROOT/include -l mkl_rt" > ./src/Makevars
   # fi
+  if ["$MKLROOT" == ""]; then
+     echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
+  else
+     echo "PKG_LIBS += -lmkl_intel -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm
+
+     PKG_CPPFLAGS +=  -I$MKL_INC -L$MKL_LINK -l mkl_rt" > ./src/Makevars
+  fi
 
    # if ["$OPENBLAS_ROOT" == ""]; then
    #    echo "PKG_LIBS += -lRblas -lRlapack" > ./src/Makevars
