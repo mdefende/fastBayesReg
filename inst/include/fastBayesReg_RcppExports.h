@@ -193,6 +193,48 @@ namespace fastBayesReg {
         return Rcpp::as<Rcpp::List >(rcpp_result_gen);
     }
 
+    inline arma::mat special_rmvnorm(int n, arma::vec& mu, arma::mat& Omega) {
+        typedef SEXP(*Ptr_special_rmvnorm)(SEXP,SEXP,SEXP);
+        static Ptr_special_rmvnorm p_special_rmvnorm = NULL;
+        if (p_special_rmvnorm == NULL) {
+            validateSignature("arma::mat(*special_rmvnorm)(int,arma::vec&,arma::mat&)");
+            p_special_rmvnorm = (Ptr_special_rmvnorm)R_GetCCallable("fastBayesReg", "_fastBayesReg_special_rmvnorm");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_special_rmvnorm(Shield<SEXP>(Rcpp::wrap(n)), Shield<SEXP>(Rcpp::wrap(mu)), Shield<SEXP>(Rcpp::wrap(Omega)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<arma::mat >(rcpp_result_gen);
+    }
+
+    inline Rcpp::List fast_normal_lm_sel(arma::vec& y, arma::mat& X, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double a_sigma = 0.01, double b_sigma = 0.01, double A_tau = 10, double sel_thres = 0.5) {
+        typedef SEXP(*Ptr_fast_normal_lm_sel)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+        static Ptr_fast_normal_lm_sel p_fast_normal_lm_sel = NULL;
+        if (p_fast_normal_lm_sel == NULL) {
+            validateSignature("Rcpp::List(*fast_normal_lm_sel)(arma::vec&,arma::mat&,int,int,int,double,double,double,double)");
+            p_fast_normal_lm_sel = (Ptr_fast_normal_lm_sel)R_GetCCallable("fastBayesReg", "_fastBayesReg_fast_normal_lm_sel");
+        }
+        RObject rcpp_result_gen;
+        {
+            RNGScope RCPP_rngScope_gen;
+            rcpp_result_gen = p_fast_normal_lm_sel(Shield<SEXP>(Rcpp::wrap(y)), Shield<SEXP>(Rcpp::wrap(X)), Shield<SEXP>(Rcpp::wrap(mcmc_sample)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thinning)), Shield<SEXP>(Rcpp::wrap(a_sigma)), Shield<SEXP>(Rcpp::wrap(b_sigma)), Shield<SEXP>(Rcpp::wrap(A_tau)), Shield<SEXP>(Rcpp::wrap(sel_thres)));
+        }
+        if (rcpp_result_gen.inherits("interrupted-error"))
+            throw Rcpp::internal::InterruptedException();
+        if (Rcpp::internal::isLongjumpSentinel(rcpp_result_gen))
+            throw Rcpp::LongjumpException(rcpp_result_gen);
+        if (rcpp_result_gen.inherits("try-error"))
+            throw Rcpp::exception(Rcpp::as<std::string>(rcpp_result_gen).c_str());
+        return Rcpp::as<Rcpp::List >(rcpp_result_gen);
+    }
+
     inline Rcpp::List fast_normal_multi_lm(arma::mat& y, arma::mat& X, int mcmc_sample = 500, int burnin = 500, int thinning = 1, double a_sigma = 0.01, double b_sigma = 0.01, double A_tau = 10, bool mcmc_output = true) {
         typedef SEXP(*Ptr_fast_normal_multi_lm)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_fast_normal_multi_lm p_fast_normal_multi_lm = NULL;

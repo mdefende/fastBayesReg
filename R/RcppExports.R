@@ -195,6 +195,70 @@ fast_normal_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1
     .Call(`_fastBayesReg_fast_normal_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau)
 }
 
+#'@title Sample special form of multivariate normal distribution given
+#'precision matrix and precision matrix weighted mean parameters
+#'@param n sample size
+#'@param mu precision weighted mean vector
+#'@param Omega precision matrix
+#'@author Jian Kang <jiankang@umich.edu>
+#'@return a matrix of sample each column follows a multivariate normal distribution
+#'@examples
+#'n = 1000
+#'d = 100
+#'mean_X <- seq(1,d,length=d)
+#'cov_X <- matrix(0.5,nrow=d,ncol=d) + 0.5*diag(d)
+#'Omega = solve(cov_X)
+#'mu = Omega%*%mean_X
+#'X <- special_rmvnorm(100,mu,Omega)
+#'@export
+special_rmvnorm <- function(n, mu, Omega) {
+    .Call(`_fastBayesReg_special_rmvnorm`, n, mu, Omega)
+}
+
+#'@title Fast Bayesian linear regression with normal priors and variable selection
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param mcmc_sample number of MCMC iterations saved
+#'@param burnin number of iterations before start to save
+#'@param thinning number of iterations to skip between two saved iterations
+#'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+#'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+#'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+#'@return a list object consisting of two components
+#'\describe{
+#'\item{post_mean}{a list object of four components for posterior mean statistics}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'\item{mcmc}{a list object of three components for MCMC samples}
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2022)
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_normal_lm_sel(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_normal_lm_sel(y,X))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_normal_tab <- tab
+#'print(fast_normal_tab)
+#'@export
+fast_normal_lm_sel <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 10, sel_thres = 0.5) {
+    .Call(`_fastBayesReg_fast_normal_lm_sel`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, sel_thres)
+}
+
 #'@title Fast Bayesian linear regression with normal priors with multiple outcome variables
 #'@param y n x q matrix of q outcome variables with n observations
 #'@param X n x p matrix of p candidate predictors with n observations

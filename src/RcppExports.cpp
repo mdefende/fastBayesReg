@@ -43,7 +43,7 @@ RcppExport SEXP _fastBayesReg_log1mexpm(SEXP xSEXP) {
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -77,7 +77,7 @@ RcppExport SEXP _fastBayesReg_log1pexp(SEXP xSEXP) {
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -111,7 +111,7 @@ RcppExport SEXP _fastBayesReg_log1pexp_mat(SEXP xSEXP) {
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -150,7 +150,7 @@ RcppExport SEXP _fastBayesReg_sim_linear_reg(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP,
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -190,7 +190,7 @@ RcppExport SEXP _fastBayesReg_sim_linear_reg_multi(SEXP nSEXP, SEXP pSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -230,7 +230,7 @@ RcppExport SEXP _fastBayesReg_sim_logit_reg(SEXP nSEXP, SEXP pSEXP, SEXP qSEXP, 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -272,7 +272,7 @@ RcppExport SEXP _fastBayesReg_sim_multiclass_reg(SEXP KSEXP, SEXP nSEXP, SEXP pS
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -313,7 +313,85 @@ RcppExport SEXP _fastBayesReg_fast_normal_lm(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_s
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// special_rmvnorm
+arma::mat special_rmvnorm(int n, arma::vec& mu, arma::mat& Omega);
+static SEXP _fastBayesReg_special_rmvnorm_try(SEXP nSEXP, SEXP muSEXP, SEXP OmegaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type Omega(OmegaSEXP);
+    rcpp_result_gen = Rcpp::wrap(special_rmvnorm(n, mu, Omega));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_special_rmvnorm(SEXP nSEXP, SEXP muSEXP, SEXP OmegaSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_special_rmvnorm_try(nSEXP, muSEXP, OmegaSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
+    }
+    UNPROTECT(1);
+    return rcpp_result_gen;
+}
+// fast_normal_lm_sel
+Rcpp::List fast_normal_lm_sel(arma::vec& y, arma::mat& X, int mcmc_sample, int burnin, int thinning, double a_sigma, double b_sigma, double A_tau, double sel_thres);
+static SEXP _fastBayesReg_fast_normal_lm_sel_try(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP a_sigmaSEXP, SEXP b_sigmaSEXP, SEXP A_tauSEXP, SEXP sel_thresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type mcmc_sample(mcmc_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< int >::type thinning(thinningSEXP);
+    Rcpp::traits::input_parameter< double >::type a_sigma(a_sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type b_sigma(b_sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type A_tau(A_tauSEXP);
+    Rcpp::traits::input_parameter< double >::type sel_thres(sel_thresSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_normal_lm_sel(y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, sel_thres));
+    return rcpp_result_gen;
+END_RCPP_RETURN_ERROR
+}
+RcppExport SEXP _fastBayesReg_fast_normal_lm_sel(SEXP ySEXP, SEXP XSEXP, SEXP mcmc_sampleSEXP, SEXP burninSEXP, SEXP thinningSEXP, SEXP a_sigmaSEXP, SEXP b_sigmaSEXP, SEXP A_tauSEXP, SEXP sel_thresSEXP) {
+    SEXP rcpp_result_gen;
+    {
+        Rcpp::RNGScope rcpp_rngScope_gen;
+        rcpp_result_gen = PROTECT(_fastBayesReg_fast_normal_lm_sel_try(ySEXP, XSEXP, mcmc_sampleSEXP, burninSEXP, thinningSEXP, a_sigmaSEXP, b_sigmaSEXP, A_tauSEXP, sel_thresSEXP));
+    }
+    Rboolean rcpp_isInterrupt_gen = Rf_inherits(rcpp_result_gen, "interrupted-error");
+    if (rcpp_isInterrupt_gen) {
+        UNPROTECT(1);
+        Rf_onintr();
+    }
+    bool rcpp_isLongjump_gen = Rcpp::internal::isLongjumpSentinel(rcpp_result_gen);
+    if (rcpp_isLongjump_gen) {
+        Rcpp::internal::resumeJump(rcpp_result_gen);
+    }
+    Rboolean rcpp_isError_gen = Rf_inherits(rcpp_result_gen, "try-error");
+    if (rcpp_isError_gen) {
+        SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
+        UNPROTECT(1);
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -355,7 +433,7 @@ RcppExport SEXP _fastBayesReg_fast_normal_multi_lm(SEXP ySEXP, SEXP XSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -394,7 +472,7 @@ RcppExport SEXP _fastBayesReg_fast_normal_logit(SEXP ySEXP, SEXP XSEXP, SEXP mcm
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -434,7 +512,7 @@ RcppExport SEXP _fastBayesReg_fast_normal_logit_single_gibbs(SEXP ySEXP, SEXP XS
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -475,7 +553,7 @@ RcppExport SEXP _fastBayesReg_scalable_normal_logit_single_gibbs(SEXP ySEXP, SEX
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -515,7 +593,7 @@ RcppExport SEXP _fastBayesReg_big_normal_logit_single_gibbs(SEXP ySEXP, SEXP big
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -555,7 +633,7 @@ RcppExport SEXP _fastBayesReg_sparse_normal_logit_single_gibbs(SEXP ySEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -595,7 +673,7 @@ RcppExport SEXP _fastBayesReg_fast_normal_multiclass(SEXP ySEXP, SEXP XSEXP, SEX
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -636,7 +714,7 @@ RcppExport SEXP _fastBayesReg_fast_normal_multiclass_single_gibbs(SEXP ySEXP, SE
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -677,7 +755,7 @@ RcppExport SEXP _fastBayesReg_scalable_normal_multiclass_single_gibbs(SEXP ySEXP
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -718,7 +796,7 @@ RcppExport SEXP _fastBayesReg_fast_mfvb_normal_logit(SEXP ySEXP, SEXP XSEXP, SEX
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -759,7 +837,7 @@ RcppExport SEXP _fastBayesReg_fast_mfvb_normal_logit_single(SEXP ySEXP, SEXP XSE
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -799,7 +877,7 @@ RcppExport SEXP _fastBayesReg_fast_mfvb_multiclass(SEXP ySEXP, SEXP XSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -839,7 +917,7 @@ RcppExport SEXP _fastBayesReg_fast_horseshoe_logit(SEXP ySEXP, SEXP XSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -875,7 +953,7 @@ RcppExport SEXP _fastBayesReg_rand_left_trucnorm0(SEXP nSEXP, SEXP lowerSEXP, SE
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -913,7 +991,7 @@ RcppExport SEXP _fastBayesReg_rand_left_trucnorm(SEXP nSEXP, SEXP muSEXP, SEXP s
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -951,7 +1029,7 @@ RcppExport SEXP _fastBayesReg_rand_right_trucnorm(SEXP nSEXP, SEXP muSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -993,7 +1071,7 @@ RcppExport SEXP _fastBayesReg_fast_horseshoe_lm(SEXP ySEXP, SEXP XSEXP, SEXP mcm
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1035,7 +1113,7 @@ RcppExport SEXP _fastBayesReg_fast_horseshoe_ss_lm(SEXP ySEXP, SEXP XSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1077,7 +1155,7 @@ RcppExport SEXP _fastBayesReg_fast_horseshoe_hd_lm(SEXP ySEXP, SEXP XSEXP, SEXP 
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1113,7 +1191,7 @@ RcppExport SEXP _fastBayesReg_predict_fast_lm(SEXP model_fitSEXP, SEXP X_testSEX
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1148,7 +1226,7 @@ RcppExport SEXP _fastBayesReg_predict_fast_multi_lm(SEXP model_fitSEXP, SEXP X_t
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1183,7 +1261,7 @@ RcppExport SEXP _fastBayesReg_predict_fast_mfvb_lm(SEXP model_fitSEXP, SEXP X_te
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1220,7 +1298,7 @@ RcppExport SEXP _fastBayesReg_predict_fast_logit(SEXP model_fitSEXP, SEXP X_test
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1255,7 +1333,7 @@ RcppExport SEXP _fastBayesReg_predict_fast_multiclass(SEXP model_fitSEXP, SEXP X
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1292,7 +1370,7 @@ RcppExport SEXP _fastBayesReg_predict_fast_mfvb_logit(SEXP model_fitSEXP, SEXP X
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1334,7 +1412,7 @@ RcppExport SEXP _fastBayesReg_fast_mfvb_normal_lm(SEXP ySEXP, SEXP XSEXP, SEXP m
     if (rcpp_isError_gen) {
         SEXP rcpp_msgSEXP_gen = Rf_asChar(rcpp_result_gen);
         UNPROTECT(1);
-        Rf_error(CHAR(rcpp_msgSEXP_gen));
+        Rf_error("%s", CHAR(rcpp_msgSEXP_gen));
     }
     UNPROTECT(1);
     return rcpp_result_gen;
@@ -1352,6 +1430,8 @@ static int _fastBayesReg_RcppExport_validate(const char* sig) {
         signatures.insert("Rcpp::List(*sim_logit_reg)(int,int,int,double,double,double,double)");
         signatures.insert("Rcpp::List(*sim_multiclass_reg)(int,int,int,int,double,double,double,double,Rcpp::Nullable<Rcpp::NumericMatrix>)");
         signatures.insert("Rcpp::List(*fast_normal_lm)(arma::vec&,arma::mat&,int,int,int,double,double,double)");
+        signatures.insert("arma::mat(*special_rmvnorm)(int,arma::vec&,arma::mat&)");
+        signatures.insert("Rcpp::List(*fast_normal_lm_sel)(arma::vec&,arma::mat&,int,int,int,double,double,double,double)");
         signatures.insert("Rcpp::List(*fast_normal_multi_lm)(arma::mat&,arma::mat&,int,int,int,double,double,double,bool)");
         signatures.insert("Rcpp::List(*fast_normal_logit)(arma::vec&,arma::mat&,int,int,int,double)");
         signatures.insert("Rcpp::List(*fast_normal_logit_single_gibbs)(arma::vec&,arma::mat&,int,int,int,double,int)");
@@ -1392,6 +1472,8 @@ RcppExport SEXP _fastBayesReg_RcppExport_registerCCallable() {
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_sim_logit_reg", (DL_FUNC)_fastBayesReg_sim_logit_reg_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_sim_multiclass_reg", (DL_FUNC)_fastBayesReg_sim_multiclass_reg_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_lm", (DL_FUNC)_fastBayesReg_fast_normal_lm_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_special_rmvnorm", (DL_FUNC)_fastBayesReg_special_rmvnorm_try);
+    R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_lm_sel", (DL_FUNC)_fastBayesReg_fast_normal_lm_sel_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_multi_lm", (DL_FUNC)_fastBayesReg_fast_normal_multi_lm_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_logit", (DL_FUNC)_fastBayesReg_fast_normal_logit_try);
     R_RegisterCCallable("fastBayesReg", "_fastBayesReg_fast_normal_logit_single_gibbs", (DL_FUNC)_fastBayesReg_fast_normal_logit_single_gibbs_try);
@@ -1431,6 +1513,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fastBayesReg_sim_logit_reg", (DL_FUNC) &_fastBayesReg_sim_logit_reg, 7},
     {"_fastBayesReg_sim_multiclass_reg", (DL_FUNC) &_fastBayesReg_sim_multiclass_reg, 9},
     {"_fastBayesReg_fast_normal_lm", (DL_FUNC) &_fastBayesReg_fast_normal_lm, 8},
+    {"_fastBayesReg_special_rmvnorm", (DL_FUNC) &_fastBayesReg_special_rmvnorm, 3},
+    {"_fastBayesReg_fast_normal_lm_sel", (DL_FUNC) &_fastBayesReg_fast_normal_lm_sel, 9},
     {"_fastBayesReg_fast_normal_multi_lm", (DL_FUNC) &_fastBayesReg_fast_normal_multi_lm, 9},
     {"_fastBayesReg_fast_normal_logit", (DL_FUNC) &_fastBayesReg_fast_normal_logit, 6},
     {"_fastBayesReg_fast_normal_logit_single_gibbs", (DL_FUNC) &_fastBayesReg_fast_normal_logit_single_gibbs, 7},

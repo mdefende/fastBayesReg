@@ -454,7 +454,7 @@ Rcpp::List sim_multiclass_reg(int K = 5, int n = 100, int p = 20, int q = 5,
 //'print(fast_normal_tab)
 //'@export
 //[[Rcpp::export]]
- Rcpp::List fast_normal_lm(arma::vec& y, arma::mat& X,
+Rcpp::List fast_normal_lm(arma::vec& y, arma::mat& X,
                            int mcmc_sample = 500,
                            int burnin = 500, int thinning = 1,
                            double a_sigma = 0.01, double b_sigma = 0.01,
@@ -557,80 +557,465 @@ Rcpp::List sim_multiclass_reg(int K = 5, int n = 100, int p = 20, int q = 5,
  }
 
 
- void one_step_update_big_p_multi(arma::mat& betacoef, arma::vec& sigma2_eps, arma::vec& tau2,
-                                  arma::vec& b_tau, arma::mat& mu, arma::mat& ys,  arma::mat& V, arma::vec& d,arma::vec& d2,
-                                  arma::mat& y, arma::mat& X,
-                                  double A2, double a_sigma, double b_sigma,
-                                  int p, int n){
+//'@title Sample special form of multivariate normal distribution given
+//'precision matrix and precision matrix weighted mean parameters
+//'@param n sample size
+//'@param mu precision weighted mean vector
+//'@param Omega precision matrix
+//'@author Jian Kang <jiankang@umich.edu>
+//'@return a matrix of sample each column follows a multivariate normal distribution
+//'@examples
+//'n = 1000
+//'d = 100
+//'mean_X <- seq(1,d,length=d)
+//'cov_X <- matrix(0.5,nrow=d,ncol=d) + 0.5*diag(d)
+//'Omega = solve(cov_X)
+//'mu = Omega%*%mean_X
+//'X <- special_rmvnorm(100,mu,Omega)
+//'@export
+//[[Rcpp::export]]
+arma::mat special_rmvnorm(int n, arma::vec& mu, arma::mat & Omega){
+	int p = mu.n_elem;
+	arma::mat X;
+	arma::mat R = arma::chol(Omega);
+	arma::vec b = arma::solve(arma::trimatl(R.t()),mu);
+	arma::mat Z = arma::randn<arma::mat>(p,n);
+	Z.each_col() += b;
+	X = arma::solve(arma::trimatu(R),Z);
+	return X;
+}
 
- 	int q = y.n_cols;
- 	arma::mat alpha_1 = arma::randn<arma::mat>(p,q);
- 	alpha_1.each_row() %= sqrt(sigma2_eps.t()%tau2.t());
- 	arma::mat alpha_2 = arma::randn<arma::mat>(n,q);
- 	alpha_2.each_row() %= sqrt(sigma2_eps.t());
- 	//arma::mat beta_s = (ys - d%(V.t()*alpha_1) - alpha_2)%d/(1.0 + tau2*d2);
- 	arma::mat beta_s = V.t()*alpha_1;
- 	beta_s.each_col() %= d;
- 	beta_s += alpha_2;
- 	beta_s -= ys;
- 	for(int i=0; i<q; i++)
- 		beta_s.col(i) %= -tau2(i)*d/(1.0 + tau2(i)*d2);
- 	betacoef = alpha_1 + V*beta_s;
+
+void one_step_update_big_p_delta(arma::vec& betacoef,
+                                 arma::vec& delta,
+                                 double& sigma2_eps,
+                                 double& tau2,
+                                 double& b_tau,
+                                 arma::vec& mu,
+                                 arma::vec& ys,
+                                 arma::mat& V,
+                                 arma::vec& d,
+                                 arma::vec& d2,
+                                 arma::vec& y,
+                                 arma::mat& X,
+                                 double A2,
+                                 double a_sigma,
+                                 double b_sigma,
+                                 int p,
+                                 int n){
+
+
+	arma::uvec non_zero_idx = arma::find(delta!=0);
+	arma::uvec zero_idx = arma::find(delta==0);
+
+	if(zero_idx.n_elem > 0){
+		betacoef.rows(zero_idx) = arma::randn<arma::vec>(zero_idx.n_elem)*sqrt(tau2*sigma2_eps);
+	}
+
+	if(non_zero_idx.n_elem>0){
+		if(non_zero_idx.n_elem > n){
+		  arma::mat V_d = V.rows(non_zero_idx);
+			V_d.each_row() %= d.t();
+			arma::vec alpha_1 = arma::randn<arma::vec>(non_zero_idx.n_elem)*sqrt(sigma2_eps*tau2);
+			arma::vec alpha_2 = arma::randn<arma::vec>(n)*sqrt(sigma2_eps);
+			//arma::vec beta_s = (ys - d%(V_d.t()*alpha_1) - alpha_2)%d/(1.0 + tau2*d2);
+			arma::mat Omega_d = V_d.t()*V_d;
+			Omega_d.diag() += 1.0/tau2;
+			arma::vec beta_s = arma::solve(Omega_d,ys - V_d.t()*alpha_1 - alpha_2);
+			betacoef.rows(non_zero_idx) = alpha_1 + V_d*beta_s;
+		} else{
+			arma::mat V_d = V.rows(non_zero_idx);
+			V_d.each_row() %= d.t();
+			arma::vec mu_d = V_d*ys/sigma2_eps;
+			arma::mat Omega_d = V_d*V_d.t();
+			Omega_d.diag() += 1.0/tau2;
+			Omega_d /= sigma2_eps;
+			betacoef.rows(non_zero_idx) = special_rmvnorm(1,mu_d,Omega_d);
+		}
+		mu = X.cols(non_zero_idx)*betacoef.rows(non_zero_idx);
+	} else{
+		mu.zeros(n);
+	}
+
+	arma::vec eps = y - mu;
+	double sum_eps2 = arma::accu(eps%eps);
+	double sum_beta2 = arma::accu(betacoef%betacoef);
+	double inv_tau2 = randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau+0.5*sum_beta2/sigma2_eps)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2)));
+	tau2 = 1.0/inv_tau2;
+	double inv_sigma2_eps = randg<double>(distr_param(a_sigma+(n+p)/2.0, 1.0/(b_sigma+0.5*sum_beta2*inv_tau2+0.5*sum_eps2)));
+	sigma2_eps = 1.0/inv_sigma2_eps;
+
+	//update delta
+	arma::vec eps_a;
+	double log_prob_diff;
+	double prob = 0.0;
+
+	if(non_zero_idx.n_elem>0){
+		for(int k=0; k<non_zero_idx.n_elem;k++){
+			eps_a = eps + X.col(non_zero_idx(k))*betacoef(non_zero_idx(k));
+			log_prob_diff = 0.5*(sum(eps_a%eps_a) - sum(eps%eps))/sigma2_eps;
+			prob = 1.0/(1.0 + exp(log_prob_diff));
+			if(arma::randu<double>() < prob){
+				delta(non_zero_idx(k)) = 0;
+				eps = eps_a;
+			}
+		}
+	}
+
+	if(zero_idx.n_elem>0){
+		for(int k=0; k<zero_idx.n_elem;k++){
+			eps_a = eps - X.col(zero_idx(k))*betacoef(zero_idx(k));
+			log_prob_diff = 0.5*(sum(eps_a%eps_a) - sum(eps%eps))/sigma2_eps;
+			prob = 1.0/(1.0 + exp(log_prob_diff));
+			if(arma::randu<double>() < prob){
+				delta(zero_idx(k)) = 1;
+				eps = eps_a;
+			}
+		}
+	}
+
+}
+
+
+void one_step_update_big_n_delta(arma::vec& betacoef,
+                                 arma::vec& delta,
+                                 double& sigma2_eps,
+                                 double& tau2,
+                                 double& b_tau,
+                                 arma::vec& mu,
+                                 arma::vec& ys,
+                                 arma::mat& V,
+                                 arma::vec& d,
+                                 arma::vec& d2,
+                                 arma::vec& y,
+                                 arma::mat& X,
+                                 double A2,
+                                 double a_sigma,
+                                 double b_sigma,
+                                 int p,
+                                 int n){
+
+
+	arma::uvec non_zero_idx = arma::find(delta!=0);
+	arma::uvec zero_idx = arma::find(delta==0);
+	double sum_eps2;
+	double sum_beta2;
+	arma::vec eps;
+	double inv_sigma2_eps;
+	double inv_tau2 = 1.0/tau2;
+
+	//std::cout << "test 0" << std::endl;
+
+	if(zero_idx.n_elem>0){
+		betacoef.rows(zero_idx) = arma::randn<arma::vec>(zero_idx.n_elem)*sqrt(tau2*sigma2_eps);
+	}
+
+	//std::cout << "test 1" << std::endl;
+	if(non_zero_idx.n_elem>0){
+		arma::mat V_d = V.rows(non_zero_idx);
+		V_d.each_row() %= d.t();
+		arma::vec mu_d = V_d*ys/sigma2_eps;
+		arma::mat Omega_d = V_d*V_d.t();
+		Omega_d.diag() += 1.0/tau2;
+		Omega_d /= sigma2_eps;
+		betacoef.rows(non_zero_idx) = special_rmvnorm(1,mu_d,Omega_d);
+		//arma::vec alpha_1 = arma::randn<arma::vec>(non_zero_idx.n_elem)%sqrt(sigma2_eps/(d2.elem(non_zero_idx) + inv_tau2));
+		//std::cout << "test 2" << std::endl;
+		//arma::vec beta_s = d.elem(non_zero_idx)%ys.elem(non_zero_idx)/(d2.elem(non_zero_idx) + inv_tau2) + alpha_1;
+		//std::cout << "test 3" << std::endl;
+		//std::cout << V.n_rows << V.n_cols << std::endl;
+		//betacoef.rows(non_zero_idx) = V.submat(non_zero_idx,non_zero_idx)*beta_s;
+		//std::cout << "test 4" << std::endl;
+		mu = X.cols(non_zero_idx)*betacoef.rows(non_zero_idx);
+	} else{
+		mu.zeros(n);
+	}
+	//std::cout << "test 5" << std::endl;
+	eps = y - mu;
+	sum_eps2 = arma::accu(eps%eps);
+	sum_beta2 = arma::accu(betacoef%betacoef);
+	inv_tau2 = randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau+0.5*sum_beta2/sigma2_eps)));
+	b_tau = randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2)));
+	inv_sigma2_eps = randg<double>(distr_param(a_sigma + p, 1.0/(b_sigma+0.5*sum_beta2*inv_tau2+0.5*sum_eps2)));
+	tau2 = 1.0/inv_tau2;
+	sigma2_eps = 1.0/inv_sigma2_eps;
+
+	//std::cout << "test" << std::endl;
+
+	//update delta
+	arma::vec eps_a;
+	double log_prob_diff;
+	double prob = 0.0;
+
+	if(non_zero_idx.n_elem>0){
+		for(int k=0; k<non_zero_idx.n_elem;k++){
+			eps_a = eps + X.col(non_zero_idx(k))*betacoef(non_zero_idx(k));
+			log_prob_diff = 0.5*(sum(eps_a%eps_a) - sum(eps%eps))/sigma2_eps;
+			prob = 1.0/(1.0 + exp(log_prob_diff));
+			if(arma::randu<double>() < prob){
+				delta(non_zero_idx(k)) = 0;
+				eps = eps_a;
+			}
+		}
+	}
+
+	if(zero_idx.n_elem>0){
+		for(int k=0; k<zero_idx.n_elem;k++){
+			eps_a = eps - X.col(zero_idx(k))*betacoef(zero_idx(k));
+			log_prob_diff = 0.5*(sum(eps_a%eps_a) - sum(eps%eps))/sigma2_eps;
+			prob = 1.0/(1.0 + exp(log_prob_diff));
+			if(arma::randu<double>() < prob){
+				delta(zero_idx(k)) = 1;
+				eps = eps_a;
+			}
+		}
+	}
+
+
+}
+
+
+//'@title Fast Bayesian linear regression with normal priors and variable selection
+//'@param y vector of n outcome variables
+//'@param X n x p matrix of candidate predictors
+//'@param mcmc_sample number of MCMC iterations saved
+//'@param burnin number of iterations before start to save
+//'@param thinning number of iterations to skip between two saved iterations
+//'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
+//'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
+//'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+//'@return a list object consisting of two components
+//'\describe{
+//'\item{post_mean}{a list object of four components for posterior mean statistics}
+//'\describe{
+//'\item{mu}{a vector of posterior predictive mean of the n training sample}
+//'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+//'\item{sigma2_eps}{posterior mean of the noise variance}
+//'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+//'}
+//'\item{mcmc}{a list object of three components for MCMC samples}
+//'\describe{
+//'\item{mu}{a vector of posterior predictive mean of the n training sample}
+//'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+//'\item{sigma2_eps}{posterior mean of the noise variance}
+//'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+//'}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'set.seed(2022)
+//'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+//'res1 <- with(dat1,fast_normal_lm_sel(y,X))
+//'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+//'res2 <- with(dat2,fast_normal_lm_sel(y,X))
+//'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+//'time=c(res1$elapsed,res2$elapsed))
+//'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+//'fast_normal_tab <- tab
+//'print(fast_normal_tab)
+//'@export
+//[[Rcpp::export]]
+Rcpp::List fast_normal_lm_sel(arma::vec& y, arma::mat& X,
+                           int mcmc_sample = 500,
+                           int burnin = 500, int thinning = 1,
+                           double a_sigma = 0.01, double b_sigma = 0.01,
+                           double A_tau = 10,
+                           double sel_thres = 0.5){
+
+ 	arma::wall_clock timer;
+ 	timer.tic();
+ 	arma::vec d;
+ 	arma::mat U;
+ 	arma::mat V;
+ 	arma::svd_econ(U,d,V,X);
+
+
+ 	arma::mat betacoef_list;
+ 	arma::mat delta_list;
+ 	arma::vec sigma2_eps_list;
+ 	arma::vec tau2_list;
+
+ 	arma::vec betacoef;
+ 	arma::vec mu;
+ 	arma::vec delta;
 
 
 
- 	mu = X*betacoef;
- 	arma::mat eps = y - mu;
- 	//double sum_eps2 = arma::accu(eps%eps);
- 	//double sum_beta2 = arma::accu(betacoef%betacoef);
 
- 	arma::rowvec sum_eps2 = arma::sum(eps%eps,0);
- 	//std::cout << sum_eps2 << std::endl;
- 	arma::rowvec sum_beta2 = arma::sum(betacoef%betacoef,0);
- 	for(int i=0; i<q; i++){
- 		double inv_tau2 = arma::randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau(i)+0.5*sum_beta2(i)/sigma2_eps(i))));
- 		b_tau(i) = arma::randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2)));
- 		tau2(i) = 1.0/inv_tau2;
- 		double inv_sigma2_eps = randg<double>(distr_param(a_sigma+p, 1.0/(b_sigma+0.5*sum_beta2(i)*inv_tau2+0.5*sum_eps2(i))));
- 		sigma2_eps(i) = 1.0/inv_sigma2_eps;
+ 	int p = X.n_cols;
+ 	int n = X.n_rows;
+ 	betacoef.zeros(p);
+ 	mu.zeros(n);
+ 	delta.zeros(p);
+
+ 	betacoef_list.zeros(p,mcmc_sample);
+ 	delta_list.zeros(p,mcmc_sample);
+ 	sigma2_eps_list.zeros(mcmc_sample);
+ 	tau2_list.zeros(mcmc_sample);
+
+ 	double sigma2_eps = b_sigma/a_sigma;
+ 	double A2 = A_tau*A_tau;
+ 	double b_tau = A2;
+ 	double tau2 = b_tau;
+
+ 	if(U.n_rows>0){
+
+ 		arma::vec d2 = d%d;
+ 		arma::vec ys = U.t()*y;
+
+ 		if(p<n){
+ 			for(int iter=0;iter<burnin;iter++){
+ 				one_step_update_big_n_delta(betacoef, delta, sigma2_eps, tau2,
+                           b_tau, mu, ys,  V,  d, d2, y,  X,
+                           A2,  a_sigma,  b_sigma, p,  n);
+
+
+ 			}
+ 			for(int iter=0;iter<mcmc_sample;iter++){
+ 				for(int j=0;j<thinning;j++){
+ 					one_step_update_big_n_delta(betacoef, delta, sigma2_eps, tau2,
+                            b_tau, mu, ys,  V,  d, d2, y,  X,
+                            A2,  a_sigma,  b_sigma, p,  n);
+ 				}
+ 				delta_list.col(iter) = delta;
+ 				betacoef_list.col(iter) = betacoef;
+ 				sigma2_eps_list(iter) = sigma2_eps;
+ 				tau2_list(iter) = tau2;
+ 			}
+ 		} else{
+ 			for(int iter=0;iter<burnin;iter++){
+ 				one_step_update_big_p_delta(betacoef, delta, sigma2_eps, tau2,
+                           b_tau, mu, ys,  V,  d, d2, y,  X,
+                           A2,  a_sigma,  b_sigma, p,  n);
+ 			}
+ 			for(int iter=0;iter<mcmc_sample;iter++){
+ 				for(int j=0;j<thinning;j++){
+ 					one_step_update_big_p_delta(betacoef, delta, sigma2_eps, tau2,
+                            b_tau, mu, ys,  V,  d, d2, y,  X,
+                            A2,  a_sigma,  b_sigma, p,  n);
+ 				}
+ 				delta_list.col(iter) = delta;
+ 				betacoef_list.col(iter) = betacoef;
+ 				sigma2_eps_list(iter) = sigma2_eps;
+ 				tau2_list(iter) = tau2;
+ 			}
+
+ 		}
  	}
+
+ 	delta = arma::mean(delta_list,1);
+ 	arma::uvec non_zero_idx = arma::find(delta>sel_thres);
+ 	betacoef.zeros(p);
+
+ 	for(int k=0; k<non_zero_idx.n_elem; k++){
+ 		int total_sample = 0;
+ 		for(int iter=0;iter<mcmc_sample;iter++){
+ 			if(delta_list(non_zero_idx(k),iter) > 0){
+ 				betacoef(non_zero_idx(k)) += betacoef_list(non_zero_idx(k),iter);
+ 				total_sample++;
+ 			}
+ 		}
+ 		betacoef(non_zero_idx(k)) /= total_sample;
+
+ 	}
+ 	//betacoef = arma::mean(betacoef_list,1);
+ 	sigma2_eps = arma::mean(sigma2_eps_list);
+ 	tau2 = arma::mean(tau2_list);
+
+
+ 	Rcpp::List post_mean = Rcpp::List::create(Named("mu") = X.cols(non_zero_idx)*betacoef.rows(non_zero_idx),
+                                            Named("betacoef") = betacoef,
+                                            Named("prob") = delta,
+                                            Named("sigma2_eps") = sigma2_eps,
+                                            Named("tau2") = tau2);
+ 	Rcpp::List mcmc = Rcpp::List::create(Named("betacoef") = betacoef_list,
+                                       Named("delta") = delta_list,
+                                       Named("sigma2_eps") = sigma2_eps_list,
+                                       Named("tau2") = tau2_list);
+
+ 	double elapsed = timer.toc();
+ 	return Rcpp::List::create(Named("post_mean") = post_mean,
+                            Named("mcmc") = mcmc,
+                            Named("elapsed") = elapsed);
  }
 
+void one_step_update_big_p_multi(arma::mat& betacoef, arma::vec& sigma2_eps, arma::vec& tau2,
+                                 arma::vec& b_tau, arma::mat& mu, arma::mat& ys,  arma::mat& V, arma::vec& d,arma::vec& d2,
+                                 arma::mat& y, arma::mat& X,
+                                 double A2, double a_sigma, double b_sigma,
+                                 int p, int n){
 
- void one_step_update_big_n_multi(arma::mat& betacoef, arma::vec& sigma2_eps, arma::vec& tau2,
-                                  arma::vec& b_tau, arma::mat& mu, arma::mat& ys,  arma::mat& V, arma::vec& d,arma::vec& d2,
-                                  arma::mat& y, arma::mat& X,
-                                  double A2, double a_sigma, double b_sigma,
-                                  int p, int n){
+	int q = y.n_cols;
+	arma::mat alpha_1 = arma::randn<arma::mat>(p,q);
+	alpha_1.each_row() %= sqrt(sigma2_eps.t()%tau2.t());
+	arma::mat alpha_2 = arma::randn<arma::mat>(n,q);
+	alpha_2.each_row() %= sqrt(sigma2_eps.t());
+	//arma::mat beta_s = (ys - d%(V.t()*alpha_1) - alpha_2)%d/(1.0 + tau2*d2);
+	arma::mat beta_s = V.t()*alpha_1;
+	beta_s.each_col() %= d;
+	beta_s += alpha_2;
+	beta_s -= ys;
+	for(int i=0; i<q; i++)
+		beta_s.col(i) %= -tau2(i)*d/(1.0 + tau2(i)*d2);
+	betacoef = alpha_1 + V*beta_s;
 
- 	arma::vec inv_tau2 = 1.0/tau2;
- 	int q = ys.n_cols;
- 	arma::mat alpha_1 = arma::randn<arma::mat>(p,q);
- 	for(int i=0; i<q; i++)
- 		alpha_1.col(i) %= sqrt(sigma2_eps(i)/(d2 + inv_tau2(i)));
- 	//arma::mat beta_s = d%ys/(d2 + inv_tau2) + alpha_1;
- 	arma::mat beta_s = arma::zeros<arma::mat>(p,q);
- 	beta_s += ys;
 
- 	for(int i=0; i<q; i++)
- 		beta_s.col(i) %= d/(d2 + inv_tau2(i));
 
- 	beta_s += alpha_1;
- 	betacoef = V*beta_s;
- 	mu = beta_s;
- 	mu.each_col() %= d;
- 	arma::mat eps = ys - mu;
- 	arma::rowvec sum_eps2 = arma::sum(eps%eps,0);
- 	//std::cout << sum_eps2 << std::endl;
- 	arma::rowvec sum_beta2 = arma::sum(beta_s%beta_s,0);
- 	for(int i=0; i<q; i++){
- 		inv_tau2(i) = arma::randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau(i)+0.5*sum_beta2(i)/sigma2_eps(i))));
- 		b_tau(i) = arma::randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2(i))));
- 		tau2(i) = 1.0/inv_tau2(i);
- 		double inv_sigma2_eps = randg<double>(distr_param(a_sigma+p, 1.0/(b_sigma+0.5*sum_beta2(i)*inv_tau2(i)+0.5*sum_eps2(i))));
- 		sigma2_eps(i) = 1.0/inv_sigma2_eps;
- 	}
- }
+	mu = X*betacoef;
+	arma::mat eps = y - mu;
+	//double sum_eps2 = arma::accu(eps%eps);
+	//double sum_beta2 = arma::accu(betacoef%betacoef);
+
+	arma::rowvec sum_eps2 = arma::sum(eps%eps,0);
+	//std::cout << sum_eps2 << std::endl;
+	arma::rowvec sum_beta2 = arma::sum(betacoef%betacoef,0);
+	for(int i=0; i<q; i++){
+		double inv_tau2 = arma::randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau(i)+0.5*sum_beta2(i)/sigma2_eps(i))));
+		b_tau(i) = arma::randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2)));
+		tau2(i) = 1.0/inv_tau2;
+		double inv_sigma2_eps = randg<double>(distr_param(a_sigma+p, 1.0/(b_sigma+0.5*sum_beta2(i)*inv_tau2+0.5*sum_eps2(i))));
+		sigma2_eps(i) = 1.0/inv_sigma2_eps;
+	}
+}
+
+
+void one_step_update_big_n_multi(arma::mat& betacoef, arma::vec& sigma2_eps, arma::vec& tau2,
+                                 arma::vec& b_tau, arma::mat& mu, arma::mat& ys,  arma::mat& V, arma::vec& d,arma::vec& d2,
+                                 arma::mat& y, arma::mat& X,
+                                 double A2, double a_sigma, double b_sigma,
+                                 int p, int n){
+
+	arma::vec inv_tau2 = 1.0/tau2;
+	int q = ys.n_cols;
+	arma::mat alpha_1 = arma::randn<arma::mat>(p,q);
+	for(int i=0; i<q; i++)
+		alpha_1.col(i) %= sqrt(sigma2_eps(i)/(d2 + inv_tau2(i)));
+	//arma::mat beta_s = d%ys/(d2 + inv_tau2) + alpha_1;
+	arma::mat beta_s = arma::zeros<arma::mat>(p,q);
+	beta_s += ys;
+
+	for(int i=0; i<q; i++)
+		beta_s.col(i) %= d/(d2 + inv_tau2(i));
+
+	beta_s += alpha_1;
+	betacoef = V*beta_s;
+	mu = beta_s;
+	mu.each_col() %= d;
+	arma::mat eps = ys - mu;
+	arma::rowvec sum_eps2 = arma::sum(eps%eps,0);
+	//std::cout << sum_eps2 << std::endl;
+	arma::rowvec sum_beta2 = arma::sum(beta_s%beta_s,0);
+	for(int i=0; i<q; i++){
+		inv_tau2(i) = arma::randg<double>(distr_param((1.0+p)/2.0,1.0/(b_tau(i)+0.5*sum_beta2(i)/sigma2_eps(i))));
+		b_tau(i) = arma::randg<double>(distr_param(1.0,1.0/(1.0/A2 + inv_tau2(i))));
+		tau2(i) = 1.0/inv_tau2(i);
+		double inv_sigma2_eps = randg<double>(distr_param(a_sigma+p, 1.0/(b_sigma+0.5*sum_beta2(i)*inv_tau2(i)+0.5*sum_eps2(i))));
+		sigma2_eps(i) = 1.0/inv_sigma2_eps;
+	}
+}
+
 
 //'@title Fast Bayesian linear regression with normal priors with multiple outcome variables
 //'@param y n x q matrix of q outcome variables with n observations
