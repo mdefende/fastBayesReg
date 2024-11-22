@@ -5,6 +5,8 @@
 #'@importFrom pgdraw pgdraw
 #'@import bigmemory
 #'@import BH
+#'@import RcppProgress
+#'@import RcppEnsmallen
 #'@useDynLib fastBayesReg, .registration=TRUE
 NULL
 
@@ -268,6 +270,8 @@ fast_normal_lm_sel <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning
 #'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
 #'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
 #'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+#'@param mcmc_output logical value; Default value is true
+#'@param display_progress logical value; Default value is true
 #'@return a list object consisting of two components
 #'\describe{
 #'\item{post_mean}{a list object of four components for posterior mean statistics}
@@ -299,8 +303,8 @@ fast_normal_lm_sel <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning
 #'fast_normal_tab <- tab
 #'print(fast_normal_tab)
 #'@export
-fast_normal_multi_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 10, mcmc_output = TRUE) {
-    .Call(`_fastBayesReg_fast_normal_multi_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, mcmc_output)
+fast_normal_multi_lm <- function(y, X, mcmc_sample = 500L, burnin = 500L, thinning = 1L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 10, mcmc_output = TRUE, display_progress = TRUE) {
+    .Call(`_fastBayesReg_fast_normal_multi_lm`, y, X, mcmc_sample, burnin, thinning, a_sigma, b_sigma, A_tau, mcmc_output, display_progress)
 }
 
 #'@title Fast Bayesian logistic regression with normal priors
@@ -1251,6 +1255,45 @@ predict_fast_mfvb_logit <- function(model_fit, X_test, alpha = 0.95, cutoff = 0.
 #'@export
 fast_mfvb_normal_lm <- function(y, X, max_iter = 500L, a_sigma = 0.01, b_sigma = 0.01, A_tau = 1, tol = 1e-5, t_sigma2_eps_0 = 0, t_tau2_0 = 0) {
     .Call(`_fastBayesReg_fast_mfvb_normal_lm`, y, X, max_iter, a_sigma, b_sigma, A_tau, tol, t_sigma2_eps_0, t_tau2_0)
+}
+
+#'@export
+Rcpp_optimize_H <- function(d_sq, z_sq) {
+    .Call(`_fastBayesReg_Rcpp_optimize_H`, d_sq, z_sq)
+}
+
+#'@export
+Rcpp_optimize_L <- function(d_sq, z_sq, sum_y_sq, n) {
+    .Call(`_fastBayesReg_Rcpp_optimize_L`, d_sq, z_sq, sum_y_sq, n)
+}
+
+#'@title Super Fast Bayesian linear regression with normal priors (Tuning Free)
+#'@param y vector of n outcome variables
+#'@param X n x p matrix of candidate predictors
+#'@param theta shrinkage parameter
+#'@return a list object consisting of posterior mean estiamte
+#'\describe{
+#'\item{mu}{a vector of posterior predictive mean of the n training sample}
+#'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+#'\item{sigma2_eps}{posterior mean of the noise variance}
+#'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+#'}
+#'@author Jian Kang <jiankang@umich.edu>
+#'@examples
+#'set.seed(2022)
+#'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+#'res1 <- with(dat1,fast_normal_lm(y,X))
+#'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+#'res2 <- with(dat2,fast_normal_lm(y,X))
+#'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+#'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+#'time=c(res1$elapsed,res2$elapsed))
+#'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+#'fast_normal_tab <- tab
+#'print(fast_normal_tab)
+#'@export
+super_fast_normal_lm <- function(y, X, theta = -1.0) {
+    .Call(`_fastBayesReg_super_fast_normal_lm`, y, X, theta)
 }
 
 # Register entry points for exported C++ functions

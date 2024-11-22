@@ -1,10 +1,18 @@
 #include <RcppArmadillo.h>
+#include <progress.hpp>
+#include <progress_bar.hpp>
+#include <RcppEnsmallen.h>
+#include "optimize.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppProgress)]]
+// [[Rcpp::depends(RcppEnsmallen)]]
 // [[Rcpp::interfaces(r, cpp)]]
 
 using namespace Rcpp;
 using namespace arma;
+
+
 
 #include <bigmemory/BigMatrix.h>
 
@@ -12,9 +20,13 @@ using namespace arma;
 //'@importFrom pgdraw pgdraw
 //'@import bigmemory
 //'@import BH
+//'@import RcppProgress
+//'@import RcppEnsmallen
 //'@useDynLib fastBayesReg, .registration=TRUE
 
 #define LOG2 0.693147180559945
+
+
 
 //'@title Accurately compute log(1-exp(-x)) for x > 0
 //'@param x a vector of nonnegative numbers
@@ -1026,6 +1038,8 @@ void one_step_update_big_n_multi(arma::mat& betacoef, arma::vec& sigma2_eps, arm
 //'@param a_sigma shape parameter in the inverse gamma prior of the noise variance
 //'@param b_sigma rate parameter in the inverse gamma prior of the noise variance
 //'@param A_tau scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance
+//'@param mcmc_output logical value; Default value is true
+//'@param display_progress logical value; Default value is true
 //'@return a list object consisting of two components
 //'\describe{
 //'\item{post_mean}{a list object of four components for posterior mean statistics}
@@ -1063,7 +1077,8 @@ Rcpp::List fast_normal_multi_lm(arma::mat& y, arma::mat& X,
                                 int burnin = 500, int thinning = 1,
                                 double a_sigma = 0.01, double b_sigma = 0.01,
                                 double A_tau = 10,
-                                bool mcmc_output = true){
+                                bool mcmc_output = true,
+                                bool display_progress=true){
 
  	 	arma::wall_clock timer;
  	 	timer.tic();
@@ -1119,6 +1134,9 @@ Rcpp::List fast_normal_multi_lm(arma::mat& y, arma::mat& X,
  	 		arma::vec d2 = d%d;
  	 		arma::mat ys = U.t()*y;
 
+ 	 		int total_iter = burnin+thinning*mcmc_sample;
+
+ 	 		Progress pb(total_iter, display_progress);
 
 
  	 		if(p<n){
@@ -1126,12 +1144,14 @@ Rcpp::List fast_normal_multi_lm(arma::mat& y, arma::mat& X,
  	 				one_step_update_big_n_multi(betacoef, sigma2_eps, tau2,
                                    b_tau, mu, ys,  V,  d, d2, y,  X,
                                    A2,  a_sigma,  b_sigma, p,  n);
+ 	 				pb.increment();
  	 			}
  	 			for(int iter=0;iter<mcmc_sample;iter++){
  	 				for(int j=0;j<thinning;j++){
  	 					one_step_update_big_n_multi(betacoef, sigma2_eps, tau2,
                                     b_tau, mu, ys,  V,  d, d2, y,  X,
                                     A2,  a_sigma,  b_sigma, p,  n);
+ 	 					pb.increment();
  	 				}
  	 				if(mcmc_output){
  	 					betacoef_list.slice(iter) = betacoef;
@@ -1148,12 +1168,14 @@ Rcpp::List fast_normal_multi_lm(arma::mat& y, arma::mat& X,
  	 				one_step_update_big_p_multi(betacoef, sigma2_eps, tau2,
                                    b_tau, mu, ys,  V,  d, d2, y,  X,
                                    A2,  a_sigma,  b_sigma, p,  n);
+ 	 				pb.increment();
  	 			}
  	 			for(int iter=0;iter<mcmc_sample;iter++){
  	 				for(int j=0;j<thinning;j++){
  	 					one_step_update_big_p_multi(betacoef, sigma2_eps, tau2,
                                     b_tau, mu, ys,  V,  d, d2, y,  X,
                                     A2,  a_sigma,  b_sigma, p,  n);
+ 	 					pb.increment();
  	 				}
  	 				if(mcmc_output){
  	 					betacoef_list.slice(iter) = betacoef;
@@ -4345,7 +4367,7 @@ Rcpp::List predict_fast_multi_lm(Rcpp::List& model_fit, arma::mat& X_test){
 //'print(fast_normal_tab)
 //'@export
 //[[Rcpp::export]]
- Rcpp::List fast_mfvb_normal_lm(arma::vec& y, arma::mat& X,
+Rcpp::List fast_mfvb_normal_lm(arma::vec& y, arma::mat& X,
                                 int max_iter = 500,
                                 double a_sigma = 0.01, double b_sigma = 0.01,
                                 double A_tau = 1,double tol = 1e-5,
@@ -4485,6 +4507,173 @@ Rcpp::List predict_fast_multi_lm(Rcpp::List& model_fit, arma::mat& X_test){
                             Named("elapsed") = elapsed);
  }
 
+//Define the function for high dimensional case
+class H_fun: public Optim{
+public:
+	H_fun(const arma::mat& in_d_sq,
+       const arma::mat& in_z_sq) : d_sq(in_d_sq), z_sq(in_z_sq){
+	}
+
+
+	double value(double theta){
+		arma::mat d_sq_theta = (d_sq + theta);
+		arma::mat term1 = z_sq/d_sq_theta;
+		arma::mat term2 = arma::log(d_sq_theta);
+		double value = std::log(arma::accu(term1));
+		value *= -0.5*d_sq.n_elem;
+		value -= 0.5*arma::accu(term2);
+		return value;
+	}
+
+private:
+	const arma::mat& d_sq;
+	const arma::mat& z_sq;
+	/*void Gradient(const arma::mat& theta, arma::mat& grad){
+		grad.set_size(1, 1);
+		grad[0] = 0.0;
+		arma::mat inv_d_sq_theta = 1.0/(d_sq + theta[0]);
+		grad[0] = arma::accu(z_sq%inv_d_sq_theta%inv_d_sq_theta);
+		grad[0] /= arma::accu(z_sq%inv_d_sq_theta);
+		grad[0] *= -0.5*d_sq.n_elem;
+		grad[0] += 0.5*arma::accu(inv_d_sq_theta);
+	}*/
+};
+
+//Define the function for large sample size
+class L_fun: public Optim{
+public:
+	L_fun(const arma::mat& in_d_sq,
+       const arma::mat& in_z_sq,
+       const double& in_sum_y_sq,
+       const int& in_n) : d_sq(in_d_sq),
+       z_sq(in_z_sq), sum_y_sq(in_sum_y_sq), n(in_n){
+	}
+
+
+	double value(double theta){
+		arma::mat d_sq_theta = (d_sq + theta);
+		arma::mat term1 = d_sq%z_sq/d_sq_theta;
+		arma::mat term2 = arma::log(d_sq_theta);
+		double value = std::log(sum_y_sq - arma::accu(term1));
+		value *= -0.5*n;
+		value -= 0.5*arma::accu(term2);
+		return value;
+	}
+
+private:
+	const arma::mat& d_sq;
+	const arma::mat& z_sq;
+	const double& sum_y_sq;
+	const int& n;
+	/*void Gradient(const arma::mat& theta, arma::mat& grad){
+	 grad.set_size(1, 1);
+	 grad[0] = 0.0;
+	 arma::mat inv_d_sq_theta = 1.0/(d_sq + theta[0]);
+	 grad[0] = arma::accu(z_sq%inv_d_sq_theta%inv_d_sq_theta);
+	 grad[0] /= arma::accu(z_sq%inv_d_sq_theta);
+	 grad[0] *= -0.5*d_sq.n_elem;
+	 grad[0] += 0.5*arma::accu(inv_d_sq_theta);
+	}*/
+};
+
+//'@export
+//[[Rcpp::export]]
+double Rcpp_optimize_H(arma::mat& d_sq, arma::mat& z_sq){
+	H_fun h(d_sq, z_sq);
+	double theta_max = optimize(&h, 0, 10000, true, 1e-3);
+	return theta_max;
+}
+
+//'@export
+//[[Rcpp::export]]
+double Rcpp_optimize_L(arma::mat& d_sq,
+                       arma::mat& z_sq,
+                       double & sum_y_sq,
+                       int & n){
+	 L_fun l(d_sq, z_sq, sum_y_sq, n);
+	 double theta_max = optimize(&l, 0, 10000, true, 1e-3);
+	 return theta_max;
+}
+
+//'@title Super Fast Bayesian linear regression with normal priors (Tuning Free)
+//'@param y vector of n outcome variables
+//'@param X n x p matrix of candidate predictors
+//'@param theta shrinkage parameter
+//'@return a list object consisting of posterior mean estiamte
+//'\describe{
+//'\item{mu}{a vector of posterior predictive mean of the n training sample}
+//'\item{betacoef}{a vector of posterior mean of p regression coeficients}
+//'\item{sigma2_eps}{posterior mean of the noise variance}
+//'\item{tau2}{posterior mean of the ratio between prior regression coefficient variances and the noise variance}
+//'}
+//'@author Jian Kang <jiankang@umich.edu>
+//'@examples
+//'set.seed(2022)
+//'dat1 <- sim_linear_reg(n=2000,p=200,X_cor=0.9,q=6)
+//'res1 <- with(dat1,fast_normal_lm(y,X))
+//'dat2 <- sim_linear_reg(n=200,p=2000,X_cor=0.9,q=6)
+//'res2 <- with(dat2,fast_normal_lm(y,X))
+//'tab <- data.frame(rbind(comp_sparse_SSE(dat1$betacoef,res1$post_mean$betacoef),
+//'comp_sparse_SSE(dat2$betacoef,res2$post_mean$betacoef)),
+//'time=c(res1$elapsed,res2$elapsed))
+//'rownames(tab)<-c("n = 2000, p = 200","n = 200, p = 2000")
+//'fast_normal_tab <- tab
+//'print(fast_normal_tab)
+//'@export
+//[[Rcpp::export]]
+Rcpp::List super_fast_normal_lm(arma::vec& y, arma::mat& X,
+                                double theta = -1.0){
+
+ 	arma::wall_clock timer;
+ 	timer.tic();
+ 	arma::vec d;
+ 	arma::mat U;
+ 	arma::mat V;
+ 	arma::svd_econ(U,d,V,X);
+
+ 	arma::vec betacoef;
+ 	arma::vec mu;
+ 	double sigma2_eps = 1.0;
+ 	//double theta = 0.0;
+
+ 	//int p = X.n_cols;
+ 	//int n = X.n_rows;
+
+ 	if(U.n_rows>0){
+
+ 		arma::vec d_sq = d%d;
+ 		arma::vec z = U.t()*y;
+ 		arma::vec z_sq = z%z;
+
+ 		H_fun h(d_sq, z_sq);
+
+ 		double sum_y_sq = arma::accu(y%y);
+
+ 		L_fun l(d_sq, z_sq, sum_y_sq, X.n_rows);
+
+ 		if(theta<0){
+ 			if(X.n_cols >= X.n_rows){
+ 				theta = optimize(&h, 0, 10000, true, 1e-3);
+ 			} else{
+ 				theta = optimize(&l, 0, 10000, true, 1e-3);
+ 			}
+ 		}
+ 		arma::vec theta_d_sq = theta + d_sq;
+
+ 		betacoef = V*((d/theta_d_sq)%z);
+ 		sigma2_eps = theta*arma::mean(z_sq/theta_d_sq);
+ 	}
+
+
+ 	Rcpp::List post_mean = Rcpp::List::create(Named("mu") = X*betacoef,
+                                            Named("betacoef") = betacoef,
+                                            Named("sigma2_eps") = sigma2_eps,
+                                            Named("theta") = theta);
+
+ 	double elapsed = timer.toc();
+ 	return Rcpp::List::create(Named("post_mean") = post_mean,
+                            Named("elapsed") = elapsed);
+}
 
 
  /*

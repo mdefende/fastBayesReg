@@ -13,7 +13,8 @@ fast_normal_multi_lm(
   a_sigma = 0.01,
   b_sigma = 0.01,
   A_tau = 10,
-  mcmc_output = TRUE
+  mcmc_output = TRUE,
+  display_progress = TRUE
 )
 }
 \arguments{
@@ -32,6 +33,10 @@ fast_normal_multi_lm(
 \item{b_sigma}{rate parameter in the inverse gamma prior of the noise variance}
 
 \item{A_tau}{scale parameter in the half Cauchy prior of the ratio between the coefficient variance and the noise variance}
+
+\item{mcmc_output}{logical value; Default value is true}
+
+\item{display_progress}{logical value; Default value is true}
 }
 \value{
 a list object consisting of two components
