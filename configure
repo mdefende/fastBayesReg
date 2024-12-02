@@ -9,8 +9,9 @@ if [ ! -e "./src/Makevars" ]; then
 fi
 
 if [ "$(uname)" == "Darwin" ]; then
-        echo "PKG_LIBS +=  -L/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/ -lBLAS -lLAPACK
-        PKG_CPPFLAGS += -DNDEBUG" > ./src/Makevars
+        echo "PKG_CXXFLAGS += -O3 -mcpu=apple-m2 -ffast-math
+        PKG_LIBS += -framework Accelerate
+        " > ./src/Makevars
 
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 
