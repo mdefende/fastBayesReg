@@ -9,7 +9,7 @@ if [ ! -e "./src/Makevars" ]; then
 fi
 
 if [ "$(uname)" == "Darwin" ]; then
-        echo "PKG_CXXFLAGS += -O3 -mcpu=apple-m2 -ffast-math
+        echo "PKG_CXXFLAGS += -O3 -march=native
         PKG_LIBS += -framework Accelerate
         " > ./src/Makevars
 
